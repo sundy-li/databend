@@ -299,7 +299,7 @@ fn build(
         let size = type_id.numeric_byte_size()?;
         if size == mem_size {
             let writer = unsafe { writer.add(*offsize) };
-            Series::fixed_hash(col, writer, step)?;
+            Series::fixed_hash(col, writer, step, None)?;
             *offsize += size;
         }
     }

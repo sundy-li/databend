@@ -13,6 +13,7 @@
 // limitations under the License.
 use std::fmt::Debug;
 
+use common_arrow::arrow::bitmap::Bitmap;
 use common_exception::ErrorCode;
 use common_exception::Result;
 use common_io::prelude::*;
@@ -20,7 +21,12 @@ use common_io::prelude::*;
 use crate::prelude::*;
 
 impl Series {
-    pub fn fixed_hash(column: &ColumnRef, ptr: *mut u8, step: usize) -> Result<()> {
+    pub fn fixed_hash(
+        column: &ColumnRef,
+        ptr: *mut u8,
+        step: usize,
+        nulls: Option<(&Bitmap, usize)>,
+    ) -> Result<()> {
         let column = column.convert_full_column();
         // TODO support nullable
         let column = Series::remove_nullable(&column);
@@ -28,7 +34,7 @@ impl Series {
 
         with_match_scalar_type!(type_id, |$T| {
             let col: &<$T as Scalar>::ColumnType = Series::check_get(&column)?;
-            GroupHash::fixed_hash(col, ptr, step)
+            GroupHash::fixed_hash(col, ptr, step, nulls)
         }, {
             Err(ErrorCode::BadDataValueType(
                 format!("Unsupported apply fn fixed_hash operation for column: {:?}", column.data_type()),
@@ -62,7 +68,12 @@ impl Series {
 
 pub trait GroupHash: Debug {
     /// Compute the hash for all values in the array.
-    fn fixed_hash(&self, _ptr: *mut u8, _step: usize) -> Result<()> {
+    fn fixed_hash(
+        &self,
+        _ptr: *mut u8,
+        _step: usize,
+        _nulls: Option<(&Bitmap, usize)>,
+    ) -> Result<()> {
         Err(ErrorCode::BadDataValueType(format!(
             "Unsupported apply fn fixed_hash operation for {:?}",
             self,
@@ -82,17 +93,37 @@ where
     T: PrimitiveType,
     T: Marshal + StatBuffer + Sized,
 {
-    fn fixed_hash(&self, ptr: *mut u8, step: usize) -> Result<()> {
+    fn fixed_hash(&self, ptr: *mut u8, step: usize, nulls: Option<(&Bitmap, usize)>) -> Result<()> {
         let mut ptr = ptr;
-        // TODO: (sundy) we use reinterpret_cast here, it gains much performance
-        for value in self.values().iter() {
-            unsafe {
-                std::ptr::copy_nonoverlapping(
-                    value as *const T as *const u8,
-                    ptr,
-                    std::mem::size_of::<T>(),
-                );
-                ptr = ptr.add(step);
+
+        match nulls {
+            Some((bitmap, null_offset)) => {
+                self.values()
+                    .iter()
+                    .zip(bitmap.iter())
+                    .for_each(|(value, v)| unsafe {
+                        if v {
+                            ptr.write(0x01);
+                            std::ptr::copy_nonoverlapping(
+                                value as *const T as *const u8,
+                                ptr,
+                                std::mem::size_of::<T>(),
+                            );
+                        }
+                        ptr = ptr.add(step);
+                    });
+            }
+            None => {
+                for value in self.values().iter() {
+                    unsafe {
+                        std::ptr::copy_nonoverlapping(
+                            value as *const T as *const u8,
+                            ptr,
+                            std::mem::size_of::<T>(),
+                        );
+                        ptr = ptr.add(step);
+                    }
+                }
             }
         }
         Ok(())
@@ -108,7 +139,12 @@ where
 }
 
 impl GroupHash for BooleanColumn {
-    fn fixed_hash(&self, ptr: *mut u8, step: usize) -> Result<()> {
+    fn fixed_hash(
+        &self,
+        ptr: *mut u8,
+        step: usize,
+        _nulls: Option<(&Bitmap, usize)>,
+    ) -> Result<()> {
         let mut ptr = ptr;
 
         for value in self.values().iter() {
