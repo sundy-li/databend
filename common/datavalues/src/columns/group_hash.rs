@@ -103,12 +103,13 @@ where
                     .zip(bitmap.iter())
                     .for_each(|(value, v)| unsafe {
                         if v {
-                            ptr.write(0x01);
                             std::ptr::copy_nonoverlapping(
                                 value as *const T as *const u8,
                                 ptr,
                                 std::mem::size_of::<T>(),
                             );
+                            let null_ptr = ptr.add(null_offset);
+                            null_ptr.write(0x01);
                         }
                         ptr = ptr.add(step);
                     });
