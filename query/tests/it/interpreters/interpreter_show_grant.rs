@@ -47,7 +47,7 @@ async fn test_show_grant_interpreter() -> Result<()> {
         let executor = InterpreterFactory::get(ctx.clone(), plan.clone())?;
         assert_eq!(executor.name(), "ShowGrantsInterpreter");
 
-        let stream = executor.execute(None).await?;
+        let stream = executor.execute(None, None).await?;
         let result = stream.try_collect::<Vec<_>>().await?;
         let expected = vec!["+--------+", "| Grants |", "+--------+", "+--------+"];
         common_datablocks::assert_blocks_sorted_eq(expected, result.as_slice());
@@ -58,7 +58,7 @@ async fn test_show_grant_interpreter() -> Result<()> {
         let executor = InterpreterFactory::get(ctx.clone(), plan.clone())?;
         assert_eq!(executor.name(), "ShowGrantsInterpreter");
 
-        let stream = executor.execute(None).await?;
+        let stream = executor.execute(None, None).await?;
         let result = stream.try_collect::<Vec<_>>().await?;
         let expected = vec!["+--------+", "| Grants |", "+--------+", "+--------+"];
         common_datablocks::assert_blocks_sorted_eq(expected, result.as_slice());
@@ -77,7 +77,7 @@ async fn test_show_grant_interpreter() -> Result<()> {
         let plan = PlanParser::parse(ctx.clone(), "SHOW GRANTS FOR ROLE 'role2'").await?;
         let executor = InterpreterFactory::get(ctx.clone(), plan.clone())?;
 
-        let stream = executor.execute(None).await?;
+        let stream = executor.execute(None, None).await?;
         let result = stream.try_collect::<Vec<_>>().await?;
         let expected = vec![
             "+-------------------------------------+",
@@ -102,7 +102,7 @@ async fn test_show_grant_interpreter() -> Result<()> {
         let plan = PlanParser::parse(ctx.clone(), "SHOW GRANTS FOR 'test'@'localhost'").await?;
         let executor = InterpreterFactory::get(ctx.clone(), plan.clone())?;
 
-        let stream = executor.execute(None).await?;
+        let stream = executor.execute(None, None).await?;
         let result = stream.try_collect::<Vec<_>>().await?;
         let expected = vec![
             "+------------------------------------------------+",
@@ -129,7 +129,7 @@ async fn test_show_grant_interpreter() -> Result<()> {
         let plan = PlanParser::parse(ctx.clone(), "SHOW GRANTS FOR 'test'@'localhost'").await?;
         let executor = InterpreterFactory::get(ctx.clone(), plan.clone())?;
 
-        let stream = executor.execute(None).await?;
+        let stream = executor.execute(None, None).await?;
         let result = stream.try_collect::<Vec<_>>().await?;
         let expected = vec![
             "+-------------------------------------------------------+",
@@ -149,7 +149,7 @@ async fn test_show_grant_interpreter() -> Result<()> {
         let plan = PlanParser::parse(ctx.clone(), "SHOW GRANTS FOR ROLE 'role1'").await?;
         let executor = InterpreterFactory::get(ctx.clone(), plan.clone())?;
 
-        let stream = executor.execute(None).await?;
+        let stream = executor.execute(None, None).await?;
         let result = stream.try_collect::<Vec<_>>().await?;
         let expected = vec![
             "+-------------------------------------+",
@@ -173,7 +173,7 @@ async fn test_show_grant_interpreter() -> Result<()> {
         let plan = PlanParser::parse(ctx.clone(), "SHOW GRANTS FOR ROLE 'role1'").await?;
         let executor = InterpreterFactory::get(ctx.clone(), plan.clone())?;
 
-        let stream = executor.execute(None).await?;
+        let stream = executor.execute(None, None).await?;
         let result = stream.try_collect::<Vec<_>>().await?;
         let expected = vec![
             "+--------------------------------------+",
