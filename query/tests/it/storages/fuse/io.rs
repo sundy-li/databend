@@ -526,4 +526,8 @@ where
         v.increase_write_op_count();
         Err(err)
     }
+    
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }

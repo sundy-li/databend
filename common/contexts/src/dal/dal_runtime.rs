@@ -141,4 +141,11 @@ impl Accessor for DalRuntime {
             .await
             .expect("join must success")
     }
+    
+    fn as_any(&self) -> &dyn std::any::Any {
+       match &self.inner {
+            Some(v) => v.as_any(),
+            _ => self,
+       }
+    }
 }

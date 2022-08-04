@@ -21,6 +21,7 @@ use common_datablocks::DataBlock;
 use common_exception::ErrorCode;
 use common_exception::Result;
 use common_planners::Extras;
+use common_planners::PartInfo;
 use common_planners::PartInfoPtr;
 use common_planners::ReadDataSourcePlan;
 
@@ -91,6 +92,7 @@ impl FuseTable {
 
 enum State {
     ReadData(PartInfoPtr),
+    SyncReadData(PartInfoPtr),
     Deserialize(PartInfoPtr, Vec<(usize, Vec<u8>)>),
     Generated(Option<PartInfoPtr>, DataBlock),
     Finish,
@@ -102,6 +104,7 @@ struct FuseTableSource {
     scan_progress: Arc<Progress>,
     block_reader: Arc<BlockReader>,
     output: Arc<OutputPort>,
+    support_sync: bool,
 }
 
 impl FuseTableSource {
@@ -112,6 +115,7 @@ impl FuseTableSource {
     ) -> Result<ProcessorPtr> {
         let scan_progress = ctx.get_scan_progress();
         let mut partitions = ctx.try_get_partitions(1)?;
+        let support_sync = block_reader.operator.support_sync();
         match partitions.is_empty() {
             true => Ok(ProcessorPtr::create(Box::new(FuseTableSource {
                 ctx,
@@ -119,6 +123,7 @@ impl FuseTableSource {
                 block_reader,
                 scan_progress,
                 state: State::Finish,
+                support_sync,
             }))),
             false => Ok(ProcessorPtr::create(Box::new(FuseTableSource {
                 ctx,
@@ -126,6 +131,7 @@ impl FuseTableSource {
                 block_reader,
                 scan_progress,
                 state: State::ReadData(partitions.remove(0)),
+                support_sync,
             }))),
         }
     }
@@ -159,7 +165,13 @@ impl Processor for FuseTableSource {
             if let Generated(part, data_block) = std::mem::replace(&mut self.state, State::Finish) {
                 self.state = match part {
                     None => State::Finish,
-                    Some(part) => State::ReadData(part),
+                    Some(part) => {
+                        if self.support_sync {
+                            State::SyncReadData(part)
+                        } else {
+                            State::ReadData(part)
+                        }
+                    }
                 };
 
                 self.output.push_data(Ok(data_block));
@@ -170,6 +182,7 @@ impl Processor for FuseTableSource {
         match self.state {
             State::Finish => Ok(Event::Finished),
             State::ReadData(_) => Ok(Event::Async),
+            State::SyncReadData(_) => Ok(Event::Sync),
             State::Deserialize(_, _) => Ok(Event::Sync),
             State::Generated(_, _) => Err(ErrorCode::LogicalError("It's a bug.")),
         }
@@ -177,22 +190,11 @@ impl Processor for FuseTableSource {
 
     fn process(&mut self) -> Result<()> {
         match std::mem::replace(&mut self.state, State::Finish) {
-            State::Deserialize(part, chunks) => {
-                let data_block = self.block_reader.deserialize(part, chunks)?;
-                let mut partitions = self.ctx.try_get_partitions(1)?;
-
-                let progress_values = ProgressValues {
-                    rows: data_block.num_rows(),
-                    bytes: data_block.memory_size(),
-                };
-                self.scan_progress.incr(&progress_values);
-
-                self.state = match partitions.is_empty() {
-                    true => State::Generated(None, data_block),
-                    false => State::Generated(Some(partitions.remove(0)), data_block),
-                };
-                Ok(())
+            State::SyncReadData(part) => {
+                let chunks = self.block_reader.sync_read_columns_data(part.clone())?;
+                self.deserialize(part, chunks)
             }
+            State::Deserialize(part, chunks) => self.deserialize(part, chunks),
             _ => Err(ErrorCode::LogicalError("It's a bug.")),
         }
     }
@@ -206,5 +208,28 @@ impl Processor for FuseTableSource {
             }
             _ => Err(ErrorCode::LogicalError("It's a bug.")),
         }
+    }
+}
+
+impl FuseTableSource {
+    fn deserialize(
+        &mut self,
+        part: Arc<Box<dyn PartInfo>>,
+        chunks: Vec<(usize, Vec<u8>)>,
+    ) -> Result<()> {
+        let data_block = self.block_reader.deserialize(part, chunks)?;
+        let mut partitions = self.ctx.try_get_partitions(1)?;
+
+        let progress_values = ProgressValues {
+            rows: data_block.num_rows(),
+            bytes: data_block.memory_size(),
+        };
+        self.scan_progress.incr(&progress_values);
+
+        self.state = match partitions.is_empty() {
+            true => State::Generated(None, data_block),
+            false => State::Generated(Some(partitions.remove(0)), data_block),
+        };
+        Ok(())
     }
 }

@@ -63,7 +63,7 @@ impl DalContext {
             Some(inner) => Ok(inner.clone()),
         }
     }
-
+    
     pub fn get_metrics(&self) -> Arc<DalMetrics> {
         self.metrics.clone()
     }
@@ -156,5 +156,12 @@ impl Accessor for DalContext {
 
     async fn list(&self, args: &OpList) -> Result<DirStreamer> {
         self.get_inner()?.list(args).await
+    }
+    
+    fn as_any(&self) -> &dyn std::any::Any {
+       match &self.inner {
+            Some(v) => v.as_any(),
+            _ => self,
+       }
     }
 }

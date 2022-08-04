@@ -27,6 +27,6 @@ common-users = { path = "../users" }
 
 async-trait = "0.1.56"
 dyn-clone = "1.0.6"
-opendal = { version = "0.11.4", features = ["retry"] }
+opendal = { git = "https://github.com/sundy-li/opendal", rev = "a1f69bc", features = ["retry"] }
 parking_lot = "0.12.1"
 time = "0.3.10"

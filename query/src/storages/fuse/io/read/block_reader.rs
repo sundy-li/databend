@@ -52,7 +52,7 @@ use crate::storages::fuse::io::retry::Retryable;
 
 #[derive(Clone)]
 pub struct BlockReader {
-    operator: Operator,
+    pub(crate) operator: Operator,
     projection: Vec<usize>,
     arrow_schema: Arc<Schema>,
     projected_schema: DataSchemaRef,
@@ -374,5 +374,40 @@ impl BlockReader {
             Compression::Lz4 => ParquetCompression::Lz4,
             Compression::Lz4Raw => ParquetCompression::Lz4Raw,
         }
+    }
+}
+
+/// Sync API
+impl BlockReader {
+    pub fn sync_read_columns_data(&self, part: PartInfoPtr) -> Result<Vec<(usize, Vec<u8>)>> {
+        let part = FusePartInfo::from_part(&part)?;
+        let mut res = Vec::with_capacity(self.projection.len());
+        for proj in &self.projection {
+            let column_leaf = &self.column_leaves[*proj];
+            let indices = &column_leaf.leaf_ids;
+
+            for index in indices {
+                let column_meta = &part.columns_meta[index];
+
+                res.push(Self::sync_read_column(
+                    self.operator.object(&part.location),
+                    *index,
+                    column_meta.offset,
+                    column_meta.length,
+                )?);
+            }
+        }
+        println!("{:?}", "sync_read_columns_data cost");
+        Ok(res)
+    }
+
+    pub fn sync_read_column(
+        o: Object,
+        index: usize,
+        offset: u64,
+        length: u64,
+    ) -> Result<(usize, Vec<u8>)> {
+        let chunk = o.fs_sync_range_read(offset..offset + length)?;
+        Ok((index, chunk))
     }
 }
