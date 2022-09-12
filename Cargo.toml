@@ -34,7 +34,7 @@ thiserror = "1.0"
 tokio = { version = "0.3", features = ["macros", "rt", "rt-multi-thread", "stream", "signal", "sync"] }
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.4"
 pretty_assertions = "0.6"
 
 [[bench]]
