@@ -15,10 +15,10 @@
 use std::collections::VecDeque;
 use std::future::Future;
 use std::net::SocketAddr;
-use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::sync::Weak;
 
 use chrono_tz::Tz;
 use common_base::base::tokio::task::JoinHandle;
@@ -41,9 +41,6 @@ use common_legacy_planners::SourceInfo;
 use common_legacy_planners::StageTableInfo;
 use common_meta_app::schema::TableInfo;
 use common_meta_types::UserInfo;
-use common_streams::AbortStream;
-use common_streams::SendableDataBlockStream;
-use futures::future::AbortHandle;
 use opendal::Operator;
 use parking_lot::Mutex;
 use parking_lot::RwLock;
@@ -53,6 +50,7 @@ use crate::api::DataExchangeManager;
 use crate::auth::AuthMgr;
 use crate::catalogs::Catalog;
 use crate::clusters::Cluster;
+use crate::pipelines::executor::PipelineExecutor;
 use crate::servers::http::v1::HttpQueryHandle;
 use crate::sessions::query_affect::QueryAffect;
 use crate::sessions::ProcessInfo;
@@ -143,16 +141,6 @@ impl QueryContext {
         DataExchangeManager::instance()
     }
 
-    pub fn try_create_abortable(&self, input: SendableDataBlockStream) -> Result<AbortStream> {
-        let (abort_handle, abort_stream) = AbortStream::try_create(input)?;
-        self.shared.add_source_abort_handle(abort_handle);
-        Ok(abort_stream)
-    }
-
-    pub fn add_source_abort_handle(&self, abort_handle: AbortHandle) {
-        self.shared.add_source_abort_handle(abort_handle);
-    }
-
     pub fn attach_http_query(&self, handle: HttpQueryHandle) {
         self.shared.attach_http_query_handle(handle);
     }
@@ -190,16 +178,16 @@ impl QueryContext {
         self.shared.session.session_ctx.get_client_host()
     }
 
-    pub fn query_need_abort(self: &Arc<Self>) -> Arc<AtomicBool> {
-        self.shared.query_need_abort()
-    }
-
     pub fn get_affect(self: &Arc<Self>) -> Option<QueryAffect> {
         self.shared.get_affect()
     }
 
     pub fn set_affect(self: &Arc<Self>, affect: QueryAffect) {
         self.shared.set_affect(affect)
+    }
+
+    pub fn set_executor(&self, weak_ptr: Weak<PipelineExecutor>) {
+        self.shared.set_executor(weak_ptr)
     }
 }
 

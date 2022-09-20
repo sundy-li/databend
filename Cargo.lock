@@ -1299,8 +1299,10 @@ dependencies = [
  "once_cell",
  "ordered-float 3.0.0 (git+https://github.com/andylokandy/rust-ordered-float.git?branch=as)",
  "rand 0.8.5",
+ "regex",
  "serde",
  "serde_json",
+ "simdutf8",
  "strength_reduce",
 ]
 
@@ -1727,6 +1729,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "common-planner"
+version = "0.1.0"
+dependencies = [
+ "common-catalog",
+ "common-datavalues",
+ "parking_lot 0.12.1",
+]
+
+[[package]]
 name = "common-proto-conv"
 version = "0.1.0"
 dependencies = [
@@ -1761,6 +1772,7 @@ name = "common-settings"
 version = "0.1.0"
 dependencies = [
  "common-ast",
+ "common-base",
  "common-config",
  "common-exception",
  "common-meta-types",
@@ -2542,6 +2554,7 @@ dependencies = [
  "common-pipeline-sinks",
  "common-pipeline-sources",
  "common-pipeline-transforms",
+ "common-planner",
  "common-settings",
  "common-storage",
  "common-storages-fuse",

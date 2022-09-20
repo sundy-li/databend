@@ -14,10 +14,9 @@
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicUsize;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::sync::Weak;
 
 use common_base::base::Progress;
 use common_base::base::Runtime;
@@ -26,7 +25,6 @@ use common_exception::ErrorCode;
 use common_exception::Result;
 use common_meta_types::UserInfo;
 use common_storage::StorageOperator;
-use futures::future::AbortHandle;
 use opendal::Operator;
 use parking_lot::Mutex;
 use parking_lot::RwLock;
@@ -36,6 +34,7 @@ use crate::auth::AuthMgr;
 use crate::catalogs::CatalogManager;
 use crate::catalogs::CatalogManagerHelper;
 use crate::clusters::Cluster;
+use crate::pipelines::executor::PipelineExecutor;
 use crate::servers::http::v1::HttpQueryHandle;
 use crate::sessions::query_affect::QueryAffect;
 use crate::sessions::Session;
@@ -68,7 +67,6 @@ pub struct QueryContextShared {
     pub(in crate::sessions) runtime: Arc<RwLock<Option<Arc<Runtime>>>>,
     pub(in crate::sessions) init_query_id: Arc<RwLock<String>>,
     pub(in crate::sessions) cluster_cache: Arc<Cluster>,
-    pub(in crate::sessions) sources_abort_handle: Arc<RwLock<Vec<AbortHandle>>>,
     pub(in crate::sessions) subquery_index: Arc<AtomicUsize>,
     pub(in crate::sessions) running_query: Arc<RwLock<Option<String>>>,
     pub(in crate::sessions) http_query: Arc<RwLock<Option<HttpQueryHandle>>>,
@@ -77,8 +75,8 @@ pub struct QueryContextShared {
     pub(in crate::sessions) auth_manager: Arc<AuthMgr>,
     pub(in crate::sessions) affect: Arc<Mutex<Option<QueryAffect>>>,
     pub(in crate::sessions) catalog_manager: Arc<CatalogManager>,
-    pub(in crate::sessions) query_need_abort: Arc<AtomicBool>,
     pub(in crate::sessions) storage_operator: Operator,
+    pub(in crate::sessions) executor: Arc<RwLock<Weak<PipelineExecutor>>>,
 }
 
 impl QueryContextShared {
@@ -99,15 +97,14 @@ impl QueryContextShared {
             write_progress: Arc::new(Progress::create()),
             error: Arc::new(Mutex::new(None)),
             runtime: Arc::new(RwLock::new(None)),
-            sources_abort_handle: Arc::new(RwLock::new(Vec::new())),
             subquery_index: Arc::new(AtomicUsize::new(1)),
             running_query: Arc::new(RwLock::new(None)),
             http_query: Arc::new(RwLock::new(None)),
             tables_refs: Arc::new(Mutex::new(HashMap::new())),
             dal_ctx: Arc::new(Default::default()),
             auth_manager: AuthMgr::create(config).await?,
-            query_need_abort: Arc::new(AtomicBool::new(false)),
             affect: Arc::new(Mutex::new(None)),
+            executor: Arc::new(RwLock::new(Weak::new())),
         }))
     }
 
@@ -116,18 +113,13 @@ impl QueryContextShared {
         *guard = Some(err);
     }
 
-    pub fn query_need_abort(self: &Arc<Self>) -> Arc<AtomicBool> {
-        self.query_need_abort.clone()
-    }
-
     pub fn kill(&self, cause: ErrorCode) {
-        self.set_error(cause);
-        self.query_need_abort.store(true, Ordering::Release);
-        let mut sources_abort_handle = self.sources_abort_handle.write();
+        self.set_error(cause.clone());
 
-        while let Some(source_abort_handle) = sources_abort_handle.pop() {
-            source_abort_handle.abort();
+        if let Some(executor) = self.executor.read().upgrade() {
+            executor.finish(Some(cause));
         }
+
         // TODO: Wait for the query to be processed (write out the last error)
     }
 
@@ -256,11 +248,6 @@ impl QueryContextShared {
         running_query.as_ref().unwrap_or(&"".to_string()).clone()
     }
 
-    pub fn add_source_abort_handle(&self, handle: AbortHandle) {
-        let mut sources_abort_handle = self.sources_abort_handle.write();
-        sources_abort_handle.push(handle);
-    }
-
     pub fn get_config(&self) -> Config {
         self.config.clone()
     }
@@ -277,5 +264,10 @@ impl QueryContextShared {
     pub fn set_affect(&self, affect: QueryAffect) {
         let mut guard = self.affect.lock();
         *guard = Some(affect);
+    }
+
+    pub fn set_executor(&self, weak_ptr: Weak<PipelineExecutor>) {
+        let mut executor = self.executor.write();
+        *executor = weak_ptr;
     }
 }
