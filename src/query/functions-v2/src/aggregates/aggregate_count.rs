@@ -61,11 +61,15 @@ impl AggregateCountFunction {
         };
         AggregateFunctionDescription::creator_with_features(Box::new(Self::try_create), features)
     }
+
+    pub fn name() -> &'static str {
+        "AggregateCountFunction"
+    }
 }
 
 impl AggregateFunction for AggregateCountFunction {
     fn name(&self) -> &str {
-        "AggregateCountFunction"
+        Self::name()
     }
 
     fn return_type(&self) -> Result<DataType> {

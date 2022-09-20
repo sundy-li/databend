@@ -30,6 +30,7 @@ use common_expression::types::ValueType;
 use common_expression::Column;
 use common_expression::ColumnBuilder;
 use common_expression::Scalar;
+use common_hashtable::HashSet as CommonHashSet;
 use common_hashtable::HashSetWithStackMemory;
 use common_hashtable::HashTableEntity;
 use common_hashtable::HashTableKeyable;
@@ -65,7 +66,8 @@ pub struct AggregateDistinctNumberState<T: Number + HashTableKeyable> {
 }
 
 pub struct AggregateDistinctStringState {
-    set: HashSet<KeysRef, RandomState>,
+    set: CommonHashSet<KeysRef>,
+    inserted: bool,
     holder: StringColumnBuilder,
 }
 
@@ -151,7 +153,8 @@ impl DistinctStateFunc<DataGroupValue> for AggregateDistinctState {
 impl DistinctStateFunc<KeysRef> for AggregateDistinctStringState {
     fn new() -> Self {
         AggregateDistinctStringState {
-            set: HashSet::new(),
+            set: CommonHashSet::create(),
+            inserted: false,
             holder: StringColumnBuilder::with_capacity(0, 0),
         }
     }
@@ -167,7 +170,7 @@ impl DistinctStateFunc<KeysRef> for AggregateDistinctStringState {
         for index in 0..self.holder.len() {
             let data = unsafe { self.holder.index_unchecked(index) };
             let key = KeysRef::create(data.as_ptr() as usize, data.len());
-            self.set.insert(key);
+            self.set.insert_key(&key, &mut self.inserted);
         }
         Ok(())
     }
@@ -185,13 +188,10 @@ impl DistinctStateFunc<KeysRef> for AggregateDistinctStringState {
         let data = unsafe { column.index_unchecked(row) };
 
         let mut key = KeysRef::create(data.as_ptr() as usize, data.len());
-
-        if !self.set.contains(&key) {
+        self.set.insert_key(&key, &mut self.inserted);
+        if self.inserted {
             self.holder.put_slice(data);
             self.holder.commit_row();
-            let data = unsafe { self.holder.index_unchecked(self.holder.len() - 1) };
-            key = KeysRef::create(data.as_ptr() as usize, data.len());
-            self.set.insert(key);
         }
         Ok(())
     }
@@ -210,27 +210,21 @@ impl DistinctStateFunc<KeysRef> for AggregateDistinctStringState {
                     if v.get_bit(row) {
                         let data = unsafe { column.index_unchecked(row) };
                         let mut key = KeysRef::create(data.as_ptr() as usize, data.len());
-                        if !self.set.contains(&key) {
+
+                        self.set.insert_key(&key, &mut self.inserted);
+                        if self.inserted {
                             self.holder.put_slice(data);
                             self.holder.commit_row();
-
-                            let data =
-                                unsafe { self.holder.index_unchecked(self.holder.len() - 1) };
-                            key = KeysRef::create(data.as_ptr() as usize, data.len());
-                            self.set.insert(key);
                         }
                     }
                 }
                 None => {
                     let data = unsafe { column.index_unchecked(row) };
                     let mut key = KeysRef::create(data.as_ptr() as usize, data.len());
-                    if !self.set.contains(&key) {
+                    self.set.insert_key(&key, &mut self.inserted);
+                    if self.inserted {
                         self.holder.put_slice(data);
                         self.holder.commit_row();
-
-                        let data = unsafe { self.holder.index_unchecked(self.holder.len() - 1) };
-                        key = KeysRef::create(data.as_ptr() as usize, data.len());
-                        self.set.insert(key);
                     }
                 }
             }
@@ -239,7 +233,16 @@ impl DistinctStateFunc<KeysRef> for AggregateDistinctStringState {
     }
 
     fn merge(&mut self, rhs: &Self) -> Result<()> {
-        self.set.extend(rhs.set.clone());
+        for value in rhs.set.iter() {
+            let key = value.get_key();
+            self.set.insert_key(&key, &mut self.inserted);
+            if self.inserted {
+                let data =
+                    unsafe { std::slice::from_raw_parts(key.address as *const u8, key.length) };
+                self.holder.put_slice(data);
+                self.holder.commit_row();
+            }
+        }
         Ok(())
     }
 

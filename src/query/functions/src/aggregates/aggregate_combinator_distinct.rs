@@ -109,17 +109,16 @@ where
     #[allow(unused_mut)]
     fn merge_result(&self, place: StateAddr, array: &mut dyn MutableColumn) -> Result<()> {
         let state = place.get::<State>();
-
-        let layout = Layout::new::<State>();
-        let netest_place = place.next(layout.size());
-
         // faster path for count
-        if self.nested.name() == "AggregateFunctionCount" {
+        if self.nested.name() == AggregateCountFunction::name() {
             let mut builder: &mut MutablePrimitiveColumn<u64> =
                 Series::check_get_mutable_column(array)?;
             builder.append_value(state.len() as u64);
             Ok(())
         } else {
+            let layout = Layout::new::<State>();
+            let netest_place = place.next(layout.size());
+
             if state.is_empty() {
                 return self.nested.merge_result(netest_place, array);
             }
@@ -268,4 +267,14 @@ pub fn try_create(
         _s: PhantomData,
         _state: PhantomData,
     }))
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test() {
+       let vs: Vec<u8> = vec![97, 116, 97, 98, 101, 110, 100, 45, 113, 117, 101, 114, 121, 45, 97, 100, 109, 105, 110, 45, 34, 44, 34, 109, 115, 103, 34, 58, 34, 110, 111, 100, 101, 32, 105, 100, 58, 78, 111, 100, 101, 73, 110, 100, 101, 120, 40, 49, 48, 51, 41, 44, 32, 110, 97, 109, 101, 58, 92, 34, 65, 103, 103, 114, 101, 103, 97, 116, 111, 114, 80, 97, 114, 116, 105, 97, 108, 84, 114, 97];
+
+        println!("{}", std::str::from_utf8(&vs).unwrap());
+    }
 }

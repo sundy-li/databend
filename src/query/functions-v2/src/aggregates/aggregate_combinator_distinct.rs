@@ -115,11 +115,8 @@ where
     fn merge_result(&self, place: StateAddr, builder: &mut ColumnBuilder) -> Result<()> {
         let state = place.get::<State>();
 
-        let layout = Layout::new::<State>();
-        let netest_place = place.next(layout.size());
-
         // faster path for count
-        if self.nested.name() == "AggregateFunctionCount" {
+        if self.nested.name() == AggregateCountFunction::name() {
             match builder {
                 ColumnBuilder::Number(NumberColumnBuilder::UInt64(builder)) => {
                     builder.push(state.len() as u64);
@@ -128,11 +125,13 @@ where
             }
             Ok(())
         } else {
+            let layout = Layout::new::<State>();
+            let netest_place = place.next(layout.size());
             if state.is_empty() {
                 return self.nested.merge_result(netest_place, builder);
             }
-            let columns = state.build_columns(&self.arguments).unwrap();
 
+            let columns = state.build_columns(&self.arguments).unwrap();
             self.nested
                 .accumulate(netest_place, &columns, None, state.len())?;
             // merge_result

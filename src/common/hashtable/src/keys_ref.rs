@@ -28,6 +28,11 @@ impl KeysRef {
     pub fn create(address: usize, length: usize) -> KeysRef {
         KeysRef { length, address }
     }
+
+    #[inline]
+    pub unsafe fn as_slice(&self) -> &[u8] {
+        std::slice::from_raw_parts(self.address as *const u8, self.length)
+    }
 }
 
 impl Eq for KeysRef {}
@@ -39,8 +44,8 @@ impl PartialEq for KeysRef {
         }
 
         unsafe {
-            let self_value = std::slice::from_raw_parts(self.address as *const u8, self.length);
-            let other_value = std::slice::from_raw_parts(other.address as *const u8, other.length);
+            let self_value = self.as_slice();
+            let other_value = other.as_slice();
             self_value == other_value
         }
     }
@@ -56,8 +61,7 @@ impl HashTableKeyable for KeysRef {
     fn fast_hash(&self) -> u64 {
         unsafe {
             // TODO(Winter) We need more efficient hash algorithm
-            let value = std::slice::from_raw_parts(self.address as *const u8, self.length);
-
+            let value = self.as_slice();
             let mut hasher = AHasher::default();
             hasher.write(value);
             hasher.finish()

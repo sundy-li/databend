@@ -23,6 +23,7 @@ use bytes::BytesMut;
 use common_arrow::arrow::bitmap::Bitmap;
 use common_datavalues::prelude::*;
 use common_exception::Result;
+use common_hashtable::HashSet as CommonHashSet;
 use common_hashtable::HashSetWithStackMemory;
 use common_hashtable::HashTableEntity;
 use common_hashtable::HashTableKeyable;
@@ -64,7 +65,8 @@ pub struct AggregateDistinctPrimitiveState<T: PrimitiveType, E: From<T> + HashTa
 }
 
 pub struct AggregateDistinctStringState {
-    set: HashSet<KeysRef, RandomState>,
+    set: CommonHashSet<KeysRef>,
+    inserted: bool,
     holder: MutableStringColumn,
 }
 
@@ -171,16 +173,38 @@ impl DistinctStateFunc<DataGroupValues> for AggregateDistinctState {
     }
 }
 
+impl AggregateDistinctStringState {
+    #[inline]
+    fn insert_and_materialize(&mut self, key: &KeysRef) {
+        let entity = self.set.insert_key(key, &mut self.inserted);
+        if self.inserted {
+            let data = unsafe { key.as_slice() };
+            self.holder.push(data);
+            let value = unsafe { self.holder.value_unchecked(self.holder.len() - 1) };
+            entity.set_key(KeysRef::create(value.as_ptr() as usize, value.len()));
+        }
+    }
+}
+
 impl DistinctStateFunc<KeysRef> for AggregateDistinctStringState {
     fn new() -> Self {
         AggregateDistinctStringState {
-            set: HashSet::new(),
+            set: CommonHashSet::create(),
+            inserted: false,
             holder: MutableStringColumn::with_capacity(0),
         }
     }
 
     fn serialize(&self, writer: &mut BytesMut) -> Result<()> {
         let (values, offsets) = self.holder.values_offsets();
+
+
+        println!(
+            "serial holder len {}, set len {}",
+            self.holder.len(),
+            self.set.len()
+        );
+
         serialize_into_buf(writer, offsets)?;
         serialize_into_buf(writer, values)
     }
@@ -190,13 +214,19 @@ impl DistinctStateFunc<KeysRef> for AggregateDistinctStringState {
         let values: Vec<u8> = deserialize_from_slice(reader)?;
 
         self.holder = MutableStringColumn::from_data(values, offsets);
-        self.set = HashSet::with_capacity(self.holder.len());
+        self.set = CommonHashSet::with_capacity(self.holder.len());
 
         for index in 0..self.holder.len() {
             let data = unsafe { self.holder.value_unchecked(index) };
             let key = KeysRef::create(data.as_ptr() as usize, data.len());
-            self.set.insert(key);
+            self.set.insert_key(&key, &mut self.inserted);
         }
+
+        println!(
+            "holder len {}, set len {}",
+            self.holder.len(),
+            self.set.len()
+        );
         Ok(())
     }
 
@@ -205,20 +235,18 @@ impl DistinctStateFunc<KeysRef> for AggregateDistinctStringState {
     }
 
     fn len(&self) -> usize {
+        for value in self.set.iter() {
+            let s = unsafe { value.get_key().as_slice() };
+            println!("VAL->{:?}", std::str::from_utf8(s).unwrap_or_default());
+        }
         self.set.len()
     }
 
     fn add(&mut self, columns: &[ColumnRef], row: usize) -> Result<()> {
         let column: &StringColumn = unsafe { Series::static_cast(&columns[0]) };
         let data = column.get_data(row);
-        let mut key = KeysRef::create(data.as_ptr() as usize, data.len());
-
-        if !self.set.contains(&key) {
-            self.holder.push(data);
-            let data = unsafe { self.holder.value_unchecked(self.holder.len() - 1) };
-            key = KeysRef::create(data.as_ptr() as usize, data.len());
-            self.set.insert(key);
-        }
+        let key = KeysRef::create(data.as_ptr() as usize, data.len());
+        self.insert_and_materialize(&key);
         Ok(())
     }
 
@@ -235,25 +263,14 @@ impl DistinctStateFunc<KeysRef> for AggregateDistinctStringState {
                 Some(v) => {
                     if v.get_bit(row) {
                         let data = column.get_data(row);
-                        let mut key = KeysRef::create(data.as_ptr() as usize, data.len());
-                        if !self.set.contains(&key) {
-                            self.holder.push(data);
-                            let data =
-                                unsafe { self.holder.value_unchecked(self.holder.len() - 1) };
-                            key = KeysRef::create(data.as_ptr() as usize, data.len());
-                            self.set.insert(key);
-                        }
+                        let key = KeysRef::create(data.as_ptr() as usize, data.len());
+                        self.insert_and_materialize(&key);
                     }
                 }
                 None => {
                     let data = column.get_data(row);
-                    let mut key = KeysRef::create(data.as_ptr() as usize, data.len());
-                    if !self.set.contains(&key) {
-                        self.holder.push(data);
-                        let data = unsafe { self.holder.value_unchecked(self.holder.len() - 1) };
-                        key = KeysRef::create(data.as_ptr() as usize, data.len());
-                        self.set.insert(key);
-                    }
+                    let key = KeysRef::create(data.as_ptr() as usize, data.len());
+                    self.insert_and_materialize(&key);
                 }
             }
         }
@@ -261,7 +278,9 @@ impl DistinctStateFunc<KeysRef> for AggregateDistinctStringState {
     }
 
     fn merge(&mut self, rhs: &Self) -> Result<()> {
-        self.set.extend(rhs.set.clone());
+        for value in rhs.set.iter() {
+            self.insert_and_materialize(value.get_key());
+        }
         Ok(())
     }
 
