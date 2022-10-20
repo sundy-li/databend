@@ -35,8 +35,11 @@ impl ArithmeticDivFunction {
         _display_name: &str,
         args: &[&DataTypeImpl],
     ) -> Result<Box<dyn Function>> {
-        with_match_primitive_types_error!(args[0].data_type_id(), |$T| {
-            with_match_primitive_types_error!(args[1].data_type_id(), |$D| {
+        let a = remove_nullable(&args[0]);
+        let b = remove_nullable(&args[1]);
+
+        with_match_primitive_types_error!(a.data_type_id(), |$T| {
+            with_match_primitive_types_error!(b.data_type_id(), |$D| {
                 Ok(Box::new(
                     DivFunctionImpl::<$T, $D>::default()
                 ))
@@ -98,7 +101,8 @@ where
                 && rhs_viewer.value_at(i).to_owned_scalar().as_() != 0.0f64;
             if valid {
                 builder.append(
-                    lhs_viewer.value_at(i).to_owned_scalar().as_() / rhs_viewer.value_at(i).to_owned_scalar().as_(),
+                    lhs_viewer.value_at(i).to_owned_scalar().as_()
+                        / rhs_viewer.value_at(i).to_owned_scalar().as_(),
                     true,
                 );
             } else {
