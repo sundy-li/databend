@@ -26,6 +26,7 @@ mod lookup_hashtable;
 mod stack_hashtable;
 mod table0;
 
+mod b;
 #[allow(dead_code)]
 mod table1;
 mod table_empty;
@@ -33,7 +34,6 @@ mod traits;
 mod twolevel_hashtable;
 mod unsized_hashtable;
 mod utils;
-mod b;
 
 pub use table0::Entry as HashtableEntry;
 pub use traits::EntryMutRefLike as HashtableEntryMutRefLike;
