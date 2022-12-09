@@ -33,6 +33,7 @@ mod traits;
 mod twolevel_hashtable;
 mod unsized_hashtable;
 mod utils;
+mod b;
 
 pub use table0::Entry as HashtableEntry;
 pub use traits::EntryMutRefLike as HashtableEntryMutRefLike;
