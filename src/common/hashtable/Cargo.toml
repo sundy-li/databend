@@ -20,6 +20,7 @@ common-base = { path = "../base" }
 ahash = { version = "0.8.2", features = ["no-rng"] }
 bumpalo = "3.10.0"
 cfg-if = "1.0.0"
+hashbrown = "0.13.1"
 libc = "0.2.126"
 ordered-float = { version = "3.1.0", features = ["serde"] }
 primitive-types = "0.12.0"
