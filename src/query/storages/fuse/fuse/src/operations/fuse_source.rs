@@ -126,8 +126,9 @@ impl Processor for FuseTableSource {
         }
 
         if matches!(self.state, State::Generated(_, _)) {
-            if let Generated(data_block, chunks) = std::mem::replace(&mut self.state, State::Finish) {
-                self.state =  State::Deserialize(chunks);
+            if let Generated(data_block, chunks) = std::mem::replace(&mut self.state, State::Finish)
+            {
+                self.state = State::Deserialize(chunks);
                 self.output.push_data(Ok(data_block));
                 return Ok(Event::NeedConsume);
             }
@@ -185,8 +186,8 @@ impl Processor for FuseTableSource {
             }
 
             State::ReadData(Some(part)) => {
-                let mut chunks =  self.prewhere_reader.sync_read_columns_data(part.clone())?;
-                
+                let mut chunks = self.prewhere_reader.sync_read_columns_data(part.clone())?;
+
                 match self.remain_reader.as_ref() {
                     Some(r) => {
                         let cs = r.sync_read_columns_data(part.clone())?;

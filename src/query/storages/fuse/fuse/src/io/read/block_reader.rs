@@ -16,6 +16,7 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs::File;
+use std::hash::Hash;
 use std::io::BufReader;
 use std::io::Read;
 use std::io::Seek;
@@ -378,15 +379,17 @@ impl BlockReader {
         self.operator.metadata().can_blocking()
     }
 
-    pub fn sync_read_columns_data(&self, part: PartInfoPtr) -> Result<Vec<(usize, FuseReader<Reader>)>> {
+    pub fn sync_read_columns_data(
+        &self,
+        part: PartInfoPtr,
+    ) -> Result<Vec<(usize, FuseReader<Reader>)>> {
         let part = FusePartInfo::from_part(&part)?;
 
         let columns = self.projection.project_column_leaves(&self.column_leaves)?;
-        let indices = Self::build_projection_indices(&columns);
+        let indices = Self::build_projection_indices2(&columns);
         let mut results = Vec::with_capacity(indices.len());
-        
-        let mut i = 0;
-        for index in indices {
+
+        for (index, field) in indices {
             let column_meta = &part.columns_meta[&index];
 
             let op = self.operator.clone();
@@ -394,11 +397,16 @@ impl BlockReader {
             let location = part.location.clone();
             let offset = column_meta.offset;
             let length = column_meta.length;
-            
-            let f = self.schema().fields()[i].to_arrow();
-            let result = Self::sync_read_column(op.object(&location), index, offset, length, column_meta.num_values, f.data_type().clone());
-            
-            i += 1;
+
+            let result = Self::sync_read_column(
+                op.object(&location),
+                index,
+                offset,
+                length,
+                column_meta.num_values,
+                field.data_type().clone(),
+            );
+
             results.push(result?);
         }
 
@@ -429,9 +437,16 @@ impl BlockReader {
         let data = format!("_data/{}", o.path());
         let mut file = std::fs::File::open(&data)?;
         file.seek(std::io::SeekFrom::Start(offset))?;
-        
-        let reader: Reader =  Box::new(file.take(length));
-        let fuse_reader = FuseReader::new(reader, data_type, true, Some(common_arrow::arrow::io::fuse::read::Compression::LZ4), rows as usize, vec![]);
+
+        let reader: Reader = Box::new(file.take(length));
+        let fuse_reader = FuseReader::new(
+            reader,
+            data_type,
+            true,
+            Some(common_arrow::arrow::io::fuse::read::Compression::LZ4),
+            rows as usize,
+            vec![],
+        );
         Ok((index, fuse_reader))
     }
 
@@ -486,6 +501,17 @@ impl BlockReader {
         for column in columns {
             for index in &column.leaf_ids {
                 indices.insert(*index);
+            }
+        }
+        indices
+    }
+
+    // Build non duplicate leaf_ids to avoid repeated read column from parquet
+    fn build_projection_indices2(columns: &Vec<&ColumnLeaf>) -> HashMap<usize, Field> {
+        let mut indices = HashMap::with_capacity(columns.len());
+        for column in columns {
+            for index in &column.leaf_ids {
+                indices.insert(*index, column.field.clone());
             }
         }
         indices
