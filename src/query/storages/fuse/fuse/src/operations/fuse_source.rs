@@ -180,6 +180,14 @@ impl Processor for FuseTableSource {
                         data_block = data_block.add_column(col.clone(), field.clone())?;
                     }
                 }
+                
+                if let Some(filter) = self.prewhere_filter.as_ref() {
+                     // do filter
+                    let res = filter
+                        .eval(&FunctionContext::default(), &data_block)?
+                        .vector;
+                    data_block = DataBlock::filter_block(data_block, &res)?;
+                }
 
                 self.generate_one_block(data_block, chunks)?;
                 Ok(())
