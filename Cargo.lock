@@ -166,7 +166,7 @@ dependencies = [
 [[package]]
 name = "arrow2"
 version = "0.14.2"
-source = "git+https://github.com/jorgecarleitao/arrow2?rev=1da33ac#1da33acb37ebde7d95226117ec9df781a3a8d4e0"
+source = "git+https://github.com/sundy-li/arrow2?rev=436b7bd4fd#436b7bd4fd5cc320421eb01a6771d997eb9cb8e3"
 dependencies = [
  "ahash 0.8.2",
  "arrow-format",
@@ -188,15 +188,20 @@ dependencies = [
  "itertools",
  "json-deserializer",
  "lexical-core",
+ "lz4",
  "multiversion",
  "num-traits",
  "parquet2",
  "regex",
  "regex-syntax",
  "rustc_version 0.4.0",
+ "serde",
+ "serde_derive",
+ "serde_json",
  "simdutf8",
  "streaming-iterator",
  "strength_reduce",
+ "zstd",
 ]
 
 [[package]]

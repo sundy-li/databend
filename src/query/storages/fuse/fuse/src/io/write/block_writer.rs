@@ -17,6 +17,7 @@ use backon::Retryable;
 use common_arrow::parquet::compression::CompressionOptions;
 use common_arrow::parquet::metadata::ThriftFileMetaData;
 use common_datablocks::serialize_data_blocks;
+use common_datablocks::serialize_data_blocks_fuse;
 use common_datablocks::serialize_data_blocks_with_compression;
 use common_datablocks::DataBlock;
 use common_exception::Result;
@@ -66,7 +67,7 @@ impl<'a> BlockWriter<'a> {
             .build_block_index(data_accessor, &block, block_id)
             .await?;
         let (file_size, file_meta_data) = write_block(block, data_accessor, &location.0).await?;
-        let col_metas = util::column_metas(&file_meta_data)?;
+        let col_metas = util::column_metas_fuse(&file_meta_data)?;
         let block_meta = BlockMeta::new(
             row_count,
             block_size,
@@ -109,10 +110,10 @@ pub async fn write_block(
     block: DataBlock,
     data_accessor: &Operator,
     location: &str,
-) -> Result<(u64, ThriftFileMetaData)> {
+) -> Result<(u64, Vec<common_arrow::arrow::io::fuse::ColumnMeta>)> {
     let mut buf = Vec::with_capacity(DEFAULT_BLOCK_WRITE_BUFFER_SIZE);
     let schema = block.schema().clone();
-    let result = serialize_data_blocks(vec![block], &schema, &mut buf)?;
+    let result = serialize_data_blocks_fuse(vec![block], &schema, &mut buf)?;
     write_data(&buf, data_accessor, location).await?;
     Ok(result)
 }

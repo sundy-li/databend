@@ -15,9 +15,18 @@
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fs::File;
+use std::io::BufReader;
+use std::io::Read;
+use std::io::Seek;
+use std::io::Take;
 use std::sync::Arc;
 
+use common_arrow::arrow::array::Array;
+use common_arrow::arrow::chunk::Chunk;
 use common_arrow::arrow::datatypes::Field;
+use common_arrow::arrow::io::fuse::read::deserialize;
+use common_arrow::arrow::io::fuse::read::reader::FuseReader;
 use common_arrow::arrow::io::parquet::read::column_iter_to_arrays;
 use common_arrow::arrow::io::parquet::read::ArrayIter;
 use common_arrow::arrow::io::parquet::read::RowGroupDeserializer;
@@ -48,6 +57,8 @@ use tracing::Instrument;
 use crate::fuse_part::ColumnMeta;
 use crate::fuse_part::FusePartInfo;
 
+pub type Reader = Box<dyn Read + Send + Sync>;
+
 #[derive(Clone)]
 pub struct BlockReader {
     operator: Operator,
@@ -55,6 +66,7 @@ pub struct BlockReader {
     projected_schema: DataSchemaRef,
     column_leaves: ColumnLeaves,
     parquet_schema_descriptor: SchemaDescriptor,
+    scratch: Vec<u8>,
 }
 
 impl BlockReader {
@@ -80,6 +92,7 @@ impl BlockReader {
             projected_schema,
             parquet_schema_descriptor,
             column_leaves,
+            scratch: Vec::with_capacity(88 * 1024),
         }))
     }
 
@@ -277,6 +290,24 @@ impl BlockReader {
         Ok((num_rows, columns_array_iter))
     }
 
+    pub fn build_block(&self, chunks: Vec<(usize, Box<dyn Array>)>) -> Result<DataBlock> {
+        let mut results = Vec::with_capacity(chunks.len());
+        let mut chunk_map: HashMap<usize, Box<dyn Array>> = chunks.into_iter().collect();
+        let columns = self.projection.project_column_leaves(&self.column_leaves)?;
+        for column in &columns {
+            let indices = &column.leaf_ids;
+
+            for index in indices {
+                if let Some(array) = chunk_map.remove(index) {
+                    results.push(array);
+                    break;
+                }
+            }
+        }
+        let chunk = Chunk::new(results);
+        DataBlock::from_chunk(&self.schema(), &chunk)
+    }
+
     pub fn deserialize(
         &self,
         part: PartInfoPtr,
@@ -347,13 +378,14 @@ impl BlockReader {
         self.operator.metadata().can_blocking()
     }
 
-    pub fn sync_read_columns_data(&self, part: PartInfoPtr) -> Result<Vec<(usize, Vec<u8>)>> {
+    pub fn sync_read_columns_data(&self, part: PartInfoPtr) -> Result<Vec<(usize, FuseReader<Reader>)>> {
         let part = FusePartInfo::from_part(&part)?;
 
         let columns = self.projection.project_column_leaves(&self.column_leaves)?;
         let indices = Self::build_projection_indices(&columns);
         let mut results = Vec::with_capacity(indices.len());
-
+        
+        let mut i = 0;
         for index in indices {
             let column_meta = &part.columns_meta[&index];
 
@@ -362,8 +394,11 @@ impl BlockReader {
             let location = part.location.clone();
             let offset = column_meta.offset;
             let length = column_meta.length;
-
-            let result = Self::sync_read_column(op.object(&location), index, offset, length);
+            
+            let f = self.schema().fields()[i].to_arrow();
+            let result = Self::sync_read_column(op.object(&location), index, offset, length, column_meta.num_values, f.data_type().clone());
+            
+            i += 1;
             results.push(result?);
         }
 
@@ -386,9 +421,18 @@ impl BlockReader {
         index: usize,
         offset: u64,
         length: u64,
-    ) -> Result<(usize, Vec<u8>)> {
-        let chunk = o.blocking_range_read(offset..offset + length)?;
-        Ok((index, chunk))
+        rows: u64,
+        data_type: common_arrow::arrow::datatypes::DataType,
+    ) -> Result<(usize, FuseReader<Reader>)> {
+        // How opendal support sync + send ?
+        // let reader = o.blocking_range_reader(offset.. offset + length)?;
+        let data = format!("_data/{}", o.path());
+        let mut file = std::fs::File::open(&data)?;
+        file.seek(std::io::SeekFrom::Start(offset))?;
+        
+        let reader: Reader =  Box::new(file.take(length));
+        let fuse_reader = FuseReader::new(reader, data_type, true, Some(common_arrow::arrow::io::fuse::read::Compression::LZ4), rows as usize, vec![]);
+        Ok((index, fuse_reader))
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

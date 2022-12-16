@@ -14,6 +14,7 @@
 
 use common_arrow::arrow::chunk::Chunk;
 use common_arrow::arrow::datatypes::DataType as ArrowDataType;
+use common_arrow::arrow::io::fuse::write::FuseWriter;
 use common_arrow::arrow::io::parquet::write::transverse;
 use common_arrow::arrow::io::parquet::write::RowGroupIterator;
 use common_arrow::arrow::io::parquet::write::WriteOptions;
@@ -96,4 +97,35 @@ fn col_encoding(data_type: &ArrowDataType) -> Encoding {
         | ArrowDataType::LargeUtf8 => Encoding::DeltaLengthByteArray,
         _ => Encoding::Plain,
     }
+}
+
+pub fn serialize_data_blocks_fuse(
+    blocks: Vec<DataBlock>,
+    schema: impl AsRef<DataSchema>,
+    buf: &mut Vec<u8>,
+) -> Result<(u64, Vec<common_arrow::arrow::io::fuse::ColumnMeta>)> {
+    let arrow_schema = schema.as_ref().to_arrow();
+
+    let mut writer = FuseWriter::new(
+        buf,
+        arrow_schema.clone(),
+        common_arrow::arrow::io::fuse::write::WriteOptions {
+            compression: Some(common_arrow::arrow::io::fuse::write::Compression::LZ4),
+            max_page_size: Some(8192),
+        },
+    );
+
+    writer.start()?;
+
+    let batches = blocks
+        .into_iter()
+        .map(Chunk::try_from)
+        .collect::<Result<Vec<_>>>()?;
+
+    for batch in batches.iter().take(1) {
+        writer.write(&batch)?;
+    }
+
+    writer.finish()?;
+    Ok((writer.total_size() as u64, writer.metas))
 }

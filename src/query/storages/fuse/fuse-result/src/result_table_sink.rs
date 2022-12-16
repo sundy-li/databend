@@ -20,6 +20,7 @@ use common_catalog::plan::PartInfoPtr;
 use common_catalog::plan::Projection;
 use common_catalog::table_context::TableContext;
 use common_datablocks::serialize_data_blocks;
+use common_datablocks::serialize_data_blocks_fuse;
 use common_datablocks::DataBlock;
 use common_exception::ErrorCode;
 use common_exception::Result;
@@ -181,7 +182,7 @@ impl Processor for ResultTableSink {
                 let mut data = Vec::with_capacity(100 * 1024 * 1024);
                 let schema = block.schema().clone();
                 let (size, meta_data) =
-                    serialize_data_blocks(vec![block.clone()], &schema, &mut data)?;
+                    serialize_data_blocks_fuse(vec![block.clone()], &schema, &mut data)?;
 
                 let bloom_index_location = None;
                 let bloom_index_size = 0_u64;

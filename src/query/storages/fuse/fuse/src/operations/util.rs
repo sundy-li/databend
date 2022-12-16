@@ -62,3 +62,17 @@ pub fn column_metas(file_meta: &ThriftFileMetaData) -> Result<HashMap<ColumnId, 
     }
     Ok(col_metas)
 }
+
+pub fn column_metas_fuse(
+    file_meta: &Vec<common_arrow::arrow::io::fuse::ColumnMeta>,
+) -> Result<HashMap<ColumnId, ColumnMeta>> {
+    let mut col_metas = HashMap::new();
+    for (idx, meta) in file_meta.iter().enumerate() {
+        col_metas.insert(idx as ColumnId, ColumnMeta {
+            offset: meta.offset,
+            len: meta.length,
+            num_values: meta.num_values,
+        });
+    }
+    Ok(col_metas)
+}

@@ -22,6 +22,7 @@ use common_arrow::parquet::metadata::ThriftFileMetaData;
 use common_cache::Cache;
 use common_catalog::table_context::TableContext;
 use common_datablocks::serialize_data_blocks;
+use common_datablocks::serialize_data_blocks_fuse;
 use common_datablocks::serialize_data_blocks_with_compression;
 use common_datablocks::BlockCompactThresholds;
 use common_datablocks::DataBlock;
@@ -85,7 +86,7 @@ enum State {
     Serialized {
         data: Vec<u8>,
         size: u64,
-        meta_data: Box<ThriftFileMetaData>,
+        meta_data: Box<Vec<common_arrow::arrow::io::fuse::ColumnMeta>>,
         block_statistics: BlockStatistics,
         bloom_index_state: BloomIndexState,
     },
@@ -209,7 +210,8 @@ impl Processor for FuseTableSink {
                 // we need a configuration of block size threshold here
                 let mut data = Vec::with_capacity(100 * 1024 * 1024);
                 let schema = block.schema().clone();
-                let (size, meta_data) = serialize_data_blocks(vec![block], &schema, &mut data)?;
+                let (size, meta_data) =
+                    serialize_data_blocks_fuse(vec![block], &schema, &mut data)?;
 
                 self.state = State::Serialized {
                     data,

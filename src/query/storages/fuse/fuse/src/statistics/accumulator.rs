@@ -26,6 +26,7 @@ use common_storages_table_meta::meta::StatisticsOfColumns;
 use common_storages_table_meta::meta::Versioned;
 
 use crate::operations::column_metas;
+use crate::operations::util::column_metas_fuse;
 use crate::statistics::block_statistics::BlockStatistics;
 
 #[derive(Default)]
@@ -53,12 +54,12 @@ impl StatisticsAccumulator {
     pub fn add_block(
         &mut self,
         file_size: u64,
-        file_meta: ThriftFileMetaData,
+        file_meta: Vec<common_arrow::arrow::io::fuse::ColumnMeta>,
         block_statistics: BlockStatistics,
         bloom_filter_index_location: Option<Location>,
         bloom_filter_index_size: u64,
     ) -> Result<()> {
-        let col_metas = column_metas(&file_meta)?;
+        let col_metas = column_metas_fuse(&file_meta)?;
         self.add(
             file_size,
             col_metas,
