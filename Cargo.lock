@@ -166,7 +166,7 @@ dependencies = [
 [[package]]
 name = "arrow2"
 version = "0.14.2"
-source = "git+https://github.com/sundy-li/arrow2?rev=436b7bd4fd#436b7bd4fd5cc320421eb01a6771d997eb9cb8e3"
+source = "git+https://github.com/sundy-li/arrow2?rev=02247bccc7#02247bccc728698fec6c0e2cf998a58103195f41"
 dependencies = [
  "ahash 0.8.2",
  "arrow-format",

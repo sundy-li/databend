@@ -19,6 +19,7 @@ use std::io::Read;
 use std::io::Take;
 use std::sync::Arc;
 
+use common_arrow::arrow::io::fuse::read::FuseReadBuf;
 use common_arrow::arrow::io::fuse::read::reader::FuseReader;
 use common_base::base::Progress;
 use common_base::base::ProgressValues;
@@ -39,7 +40,7 @@ use common_sql::evaluator::EvalNode;
 use crate::io::BlockReader;
 use crate::operations::State::Generated;
 
-type DataChunks = Vec<(usize, FuseReader<Box<dyn Read + Send + Sync>>)>;
+type DataChunks = Vec<(usize, FuseReader<Box<dyn FuseReadBuf + Send + Sync>>)>;
 
 pub enum State {
     ReadData(Option<PartInfoPtr>),

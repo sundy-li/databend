@@ -26,6 +26,7 @@ use std::sync::Arc;
 use common_arrow::arrow::array::Array;
 use common_arrow::arrow::chunk::Chunk;
 use common_arrow::arrow::datatypes::Field;
+use common_arrow::arrow::io::fuse::read::FuseReadBuf;
 use common_arrow::arrow::io::fuse::read::deserialize;
 use common_arrow::arrow::io::fuse::read::reader::FuseReader;
 use common_arrow::arrow::io::parquet::read::column_iter_to_arrays;
@@ -58,7 +59,7 @@ use tracing::Instrument;
 use crate::fuse_part::ColumnMeta;
 use crate::fuse_part::FusePartInfo;
 
-pub type Reader = Box<dyn Read + Send + Sync>;
+pub type Reader = Box<dyn FuseReadBuf + Send + Sync>;
 
 #[derive(Clone)]
 pub struct BlockReader {
@@ -478,7 +479,7 @@ impl BlockReader {
         data_type: common_arrow::arrow::datatypes::DataType,
     ) -> Result<(usize, FuseReader<Reader>)> {
         let reader = o.blocking_range_reader(offset..offset + length)?;
-        let reader: Reader = Box::new(reader);
+        let reader: Reader = Box::new(BufReader::new(reader));
         let fuse_reader = FuseReader::new(
             reader,
             data_type,
