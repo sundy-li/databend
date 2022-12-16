@@ -379,6 +379,51 @@ impl BlockReader {
         self.operator.metadata().can_blocking()
     }
 
+    pub async fn async_read_columns_data(
+        &self,
+        part: PartInfoPtr,
+    ) -> Result<Vec<(usize, FuseReader<Reader>)>> {
+        let part = FusePartInfo::from_part(&part)?;
+        let columns = self.projection.project_column_leaves(&self.column_leaves)?;
+        let indices = Self::build_projection_indices2(&columns);
+        let mut join_handlers = Vec::with_capacity(indices.len());
+
+        for (index, field) in indices {
+            let column_meta = &part.columns_meta[&index];
+            join_handlers.push(Self::read_column2(
+                self.operator.object(&part.location),
+                index,
+                column_meta.offset,
+                column_meta.length,
+                column_meta.num_values,
+                field.data_type().clone(),
+            ));
+        }
+
+        futures::future::try_join_all(join_handlers).await
+    }
+
+    pub async fn read_column2(
+        o: Object,
+        index: usize,
+        offset: u64,
+        length: u64,
+        rows: u64,
+        data_type: common_arrow::arrow::datatypes::DataType,
+    ) -> Result<(usize, FuseReader<Reader>)> {
+        let reader = o.range_read(offset..offset + length).await?;
+        let reader: Reader = Box::new(std::io::Cursor::new(reader));
+        let fuse_reader = FuseReader::new(
+            reader,
+            data_type,
+            true,
+            Some(common_arrow::arrow::io::fuse::read::Compression::LZ4),
+            rows as usize,
+            vec![],
+        );
+        Ok((index, fuse_reader))
+    }
+
     pub fn sync_read_columns_data(
         &self,
         part: PartInfoPtr,
@@ -432,13 +477,8 @@ impl BlockReader {
         rows: u64,
         data_type: common_arrow::arrow::datatypes::DataType,
     ) -> Result<(usize, FuseReader<Reader>)> {
-        // How opendal support sync + send ?
-        // let reader = o.blocking_range_reader(offset.. offset + length)?;
-        let data = format!("_data/{}", o.path());
-        let mut file = std::fs::File::open(&data)?;
-        file.seek(std::io::SeekFrom::Start(offset))?;
-
-        let reader: Reader = Box::new(file.take(length));
+        let reader = o.blocking_range_reader(offset..offset + length)?;
+        let reader: Reader = Box::new(reader);
         let fuse_reader = FuseReader::new(
             reader,
             data_type,

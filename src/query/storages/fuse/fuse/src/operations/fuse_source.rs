@@ -180,9 +180,9 @@ impl Processor for FuseTableSource {
                         data_block = data_block.add_column(col.clone(), field.clone())?;
                     }
                 }
-                
+
                 if let Some(filter) = self.prewhere_filter.as_ref() {
-                     // do filter
+                    // do filter
                     let res = filter
                         .eval(&FunctionContext::default(), &data_block)?
                         .vector;
@@ -213,29 +213,26 @@ impl Processor for FuseTableSource {
     }
 
     async fn async_process(&mut self) -> Result<()> {
-        todo!();
-        // match std::mem::replace(&mut self.state, State::Finish) {
-        //     State::ReadData(Some(part)) => {
-        //         let chunks = self.prewhere_reader.read_columns_data(part.clone()).await?;
+        match std::mem::replace(&mut self.state, State::Finish) {
+            State::ReadData(Some(part)) => {
+                let mut chunks = self
+                    .prewhere_reader
+                    .async_read_columns_data(part.clone())
+                    .await?;
 
-        //         if self.prewhere_filter.is_some() {
-        //             self.state = State::PrewhereFilter(part, chunks);
-        //         } else {
-        //             // all needed columns are read.
-        //             self.state = State::Deserialize(part, chunks, None)
-        //         }
-        //         Ok(())
-        //     }
-        //     State::ReadDataRemain(part, prewhere_data) => {
-        //         if let Some(remain_reader) = self.remain_reader.as_ref() {
-        //             let chunks = remain_reader.read_columns_data(part.clone()).await?;
-        //             self.state = State::Deserialize(part, chunks, Some(prewhere_data));
-        //             Ok(())
-        //         } else {
-        //             Err(ErrorCode::Internal("It's a bug. No remain reader"))
-        //         }
-        //     }
-        //     _ => Err(ErrorCode::Internal("It's a bug.")),
-        // }
+                match self.remain_reader.as_ref() {
+                    Some(r) => {
+                        let cs = r.async_read_columns_data(part.clone()).await?;
+                        for c in cs.into_iter() {
+                            chunks.push(c);
+                        }
+                    }
+                    _ => {}
+                }
+                self.state = State::Deserialize(chunks);
+                Ok(())
+            }
+            _ => Err(ErrorCode::Internal("It's a bug.")),
+        }
     }
 }
