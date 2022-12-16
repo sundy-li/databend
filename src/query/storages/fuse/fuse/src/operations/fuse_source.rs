@@ -153,22 +153,22 @@ impl Processor for FuseTableSource {
             State::Deserialize(mut chunks) => {
                 let prewhere_idx = self.prewhere_reader.schema().num_fields();
                 let mut prewhere_chunks = Vec::with_capacity(prewhere_idx);
+
                 for (index, chunk) in chunks.iter_mut().take(prewhere_idx) {
+                    // No data anymore
                     if !chunk.has_next() {
                         self.state = State::ReadData(None);
                         return Ok(());
                     }
                     prewhere_chunks.push((*index, chunk.next_array()?));
                 }
+
                 let mut data_block = self.prewhere_reader.build_block(prewhere_chunks)?;
 
                 if let Some(remain_reader) = self.remain_reader.as_ref() {
                     let mut remain_chunks = Vec::with_capacity(prewhere_idx);
                     for (index, chunk) in chunks.iter_mut().skip(prewhere_idx) {
-                        if chunk.has_next() {
-                            self.state = State::ReadData(None);
-                            return Ok(());
-                        }
+                        assert!(chunk.has_next());
                         remain_chunks.push((*index, chunk.next_array()?));
                     }
                     let remain_block = remain_reader.build_block(remain_chunks)?;
