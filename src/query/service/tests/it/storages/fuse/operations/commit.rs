@@ -27,6 +27,7 @@ use common_catalog::plan::PartInfoPtr;
 use common_catalog::plan::Partitions;
 use common_catalog::table::Table;
 use common_catalog::table_context::ProcessInfo;
+use common_catalog::table_context::StageAttachment;
 use common_catalog::table_context::TableContext;
 use common_datablocks::DataBlock;
 use common_exception::ErrorCode;
@@ -453,6 +454,10 @@ impl TableContext for CtxDelegation {
     fn get_processes_info(&self) -> Vec<ProcessInfo> {
         todo!()
     }
+
+    fn get_stage_attachment(&self) -> Option<StageAttachment> {
+        todo!()
+    }
 }
 
 #[derive(Clone)]
@@ -543,14 +548,13 @@ impl Catalog for FakedCatalog {
 
     async fn update_table_meta(
         &self,
-        tenant: &str,
-        db_name: &str,
+        table_info: &TableInfo,
         req: UpdateTableMetaReq,
     ) -> Result<UpdateTableMetaReply> {
         if let Some(e) = &self.error_injection {
             Err(e.clone())
         } else {
-            self.cat.update_table_meta(tenant, db_name, req).await
+            self.cat.update_table_meta(table_info, req).await
         }
     }
 
