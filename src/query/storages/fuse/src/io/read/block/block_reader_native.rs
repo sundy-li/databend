@@ -234,6 +234,7 @@ impl PagesReader {
         self.page_id += 1;
         read_page(
             self.data.clone(),
+            self._object.clone(),
             self.page_id - 1,
             &self.meta,
             self.data_type.clone(),
@@ -243,6 +244,7 @@ impl PagesReader {
 
 fn read_page(
     data: ReaderData,
+    object: Object,
     page_id: usize,
     meta: &NativeColumnMeta,
     data_type: ArrowType,
@@ -256,7 +258,24 @@ fn read_page(
         .sum::<u64>()
         + meta.offset;
 
+    let cache = CacheManager::instance().get_data_cache();
+    
     let mut scatch = vec![];
+    
+    let key = format!("{}-{}-{}", object.path(), offset, page.length);
+    
+    if let Some(cache) = cache.as_ref() {
+        if let Some(data) = cache.get(&key) {
+            let reader = data.as_slice();
+            let mut reader = Cursor::new(reader);
+            return Ok(deserialize::read(
+                &mut reader,
+                data_type,
+                page.num_values as usize,
+                &mut scatch,
+            )?);
+        }
+    }
   
     let result = match data {
         ReaderData::Bytes(bytes) => {
@@ -273,6 +292,11 @@ fn read_page(
             let mut buf = vec![0; page.length as usize];
             let _ = file.read_at(buf.as_mut(), offset);
             let buf = Arc::new(buf);
+            
+            if let Some(cache) = cache.as_ref() {
+                cache.put(key, buf.clone());
+            }
+    
             let reader = buf.as_slice();
             let mut reader = Cursor::new(reader);
             deserialize::read(

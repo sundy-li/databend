@@ -18,6 +18,7 @@ use std::sync::Arc;
 use common_base::base::GlobalInstance;
 use common_config::QueryConfig;
 use common_exception::Result;
+use storages_common_cache::InMemoryBytesCacheHolder;
 use storages_common_cache::InMemoryCacheBuilder;
 use storages_common_cache::InMemoryItemCacheHolder;
 
@@ -41,6 +42,7 @@ pub struct CacheManager {
     file_meta_data_cache: Option<FileMetaDataCache>,
 
     fd_cache: Option<FdCache>,
+    data_cache: Option<InMemoryBytesCacheHolder>,
 }
 
 impl CacheManager {
@@ -57,6 +59,7 @@ impl CacheManager {
                 file_meta_data_cache: None,
                 table_statistic_cache: None,
                 fd_cache: None,
+                data_cache: None,
             }));
         } else {
             let table_snapshot_cache = Self::new_item_cache(config.table_cache_snapshot_count);
@@ -77,6 +80,7 @@ impl CacheManager {
                 file_meta_data_cache,
                 table_statistic_cache,
                 fd_cache,
+                data_cache: Some(InMemoryBytesCacheHolder::new(6 * 1024 * 1024 * 1024)),
             }));
         }
 
@@ -114,8 +118,14 @@ impl CacheManager {
     pub fn get_fd_cache(&self) -> Option<FdCache> {
         self.fd_cache.clone()
     }
+    
+    pub fn get_data_cache(&self) -> Option<InMemoryBytesCacheHolder> {
+        self.data_cache.clone()
+    }
 
-    fn new_item_cache<T>(capacity: u64) -> Option<InMemoryItemCacheHolder<T>> {
+    fn new_item_cache<T: Send + Sync + 'static>(
+        capacity: u64,
+    ) -> Option<InMemoryItemCacheHolder<T>> {
         if capacity > 0 {
             Some(InMemoryCacheBuilder::new_item_cache(capacity))
         } else {

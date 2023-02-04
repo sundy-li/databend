@@ -16,7 +16,6 @@ use std::fs::File;
 
 use common_arrow::parquet::metadata::FileMetaData;
 use storages_common_cache::CacheAccessor;
-use storages_common_cache::InMemoryBytesCacheHolder;
 use storages_common_cache::InMemoryItemCacheHolder;
 use storages_common_index::filters::Xor8Filter;
 use storages_common_table_meta::meta::SegmentInfo;
@@ -48,7 +47,7 @@ pub type FdCache = InMemoryItemCacheHolder<File>;
 // - cache item s of Type `T`
 // - and implement `CacheAccessor` properly
 pub trait CachedObject<T> {
-    type Cache: CacheAccessor<String, T>;
+    type Cache: CacheAccessor<String, T> + Clone;
     fn cache() -> Option<Self::Cache>;
 }
 

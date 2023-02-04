@@ -363,11 +363,14 @@ impl FuseTable {
                 // upsert snapshot statistics cache
                 if let Some(snapshot_statistics) = table_statistics {
                     if let Some(location) = &snapshot.table_statistics_location {
-                        TableSnapshotStatistics::cache()
-                            .put(location.clone(), Arc::new(snapshot_statistics));
+                        if let Some(cache) = TableSnapshotStatistics::cache() {
+                            cache.put(location.clone(), Arc::new(snapshot_statistics));
+                        }
                     }
                 }
-                TableSnapshot::cache().put(snapshot_location.clone(), Arc::new(snapshot));
+                if let Some(cache) = TableSnapshot::cache() {
+                    cache.put(snapshot_location.clone(), Arc::new(snapshot));
+                }
                 // try keep a hit file of last snapshot
                 Self::write_last_snapshot_hint(operator, location_generator, snapshot_location)
                     .await;
