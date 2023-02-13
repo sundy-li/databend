@@ -301,7 +301,7 @@ impl Processor for NativeDeserializeDataTransform {
             self.read_columns.clear();
 
             // Step 1: Check TOP_K, if prewhere_columns contains not only TOP_K, we can check if TOP_K column can satisfy the heap.
-            if self.prewhere_columns.len() > 1 {
+            if false {
                 if let Some((top_k, sorter, index)) = self.top_k.as_mut() {
                     let chunk = chunks.get_mut(*index).unwrap();
                     if !chunk.1.has_next() {
