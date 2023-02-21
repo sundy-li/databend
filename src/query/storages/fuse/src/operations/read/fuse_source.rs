@@ -58,15 +58,15 @@ pub fn build_fuse_native_source_pipeline(
         }
     };
 
-    let topk = plan
-        .push_downs
-        .as_ref()
-        .and_then(|x| x.top_k(plan.schema().as_ref(), RangeIndex::supported_type));
+    // let topk = plan
+    //     .push_downs
+    //     .as_ref()
+    //     .and_then(|x| x.top_k(plan.schema().as_ref(), RangeIndex::supported_type));
 
-    if topk.is_some() {
-        const MAX_SOURCE_PARALLE_FOR_TOPK: usize = 16;
-        pipeline.resize(MAX_SOURCE_PARALLE_FOR_TOPK)?;
-    }
+    // if topk.is_some() {
+    //     const MAX_SOURCE_PARALLE_FOR_TOPK: usize = 16;
+    //     pipeline.resize(MAX_SOURCE_PARALLE_FOR_TOPK)?;
+    // }
 
     pipeline.add_transform(|transform_input, transform_output| {
         NativeDeserializeDataTransform::create(
