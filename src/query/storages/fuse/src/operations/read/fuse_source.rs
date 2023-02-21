@@ -18,6 +18,8 @@ use common_catalog::plan::DataSourcePlan;
 use common_catalog::table_context::TableContext;
 use common_exception::Result;
 use common_pipeline_core::Pipeline;
+use storages_common_index::Index;
+use storages_common_index::RangeIndex;
 use tracing::info;
 
 use crate::io::BlockReader;
@@ -34,17 +36,17 @@ pub fn build_fuse_native_source_pipeline(
     plan: &DataSourcePlan,
     max_io_requests: usize,
 ) -> Result<()> {
+    info!("read block data adjust max io requests:{}", max_io_requests);
     match block_reader.support_blocking_api() {
         true => {
             pipeline.add_source(
                 |output| {
                     ReadNativeDataSource::<true>::create(ctx.clone(), output, block_reader.clone())
                 },
-                max_threads,
+                max_io_requests,
             )?;
         }
         false => {
-            info!("read block data adjust max io requests:{}", max_io_requests);
             pipeline.add_source(
                 |output| {
                     ReadNativeDataSource::<false>::create(ctx.clone(), output, block_reader.clone())
@@ -52,15 +54,19 @@ pub fn build_fuse_native_source_pipeline(
                 max_io_requests,
             )?;
 
-            pipeline.resize(std::cmp::min(max_threads, max_io_requests))?;
-
-            info!(
-                "read block pipeline resize from:{} to:{}",
-                max_io_requests,
-                pipeline.output_len()
-            );
+            pipeline.resize(max_threads)?;
         }
     };
+
+    let topk = plan
+        .push_downs
+        .as_ref()
+        .and_then(|x| x.top_k(plan.schema().as_ref(), RangeIndex::supported_type));
+
+    if topk.is_some() {
+        const MAX_SOURCE_PARALLE_FOR_TOPK: usize = 16;
+        pipeline.resize(MAX_SOURCE_PARALLE_FOR_TOPK)?;
+    }
 
     pipeline.add_transform(|transform_input, transform_output| {
         NativeDeserializeDataTransform::create(
@@ -70,7 +76,9 @@ pub fn build_fuse_native_source_pipeline(
             transform_input,
             transform_output,
         )
-    })
+    })?;
+
+    pipeline.resize(max_threads)
 }
 
 pub fn build_fuse_parquet_source_pipeline(
