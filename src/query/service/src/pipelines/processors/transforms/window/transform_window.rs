@@ -75,6 +75,7 @@ impl Transform for TransformWindow {
     const SKIP_EMPTY_DATA_BLOCK: bool = true;
 
     fn transform(&mut self, data: DataBlock) -> Result<DataBlock> {
+        self.blocks.push_back(data);
         todo!()
     }
 
