@@ -31,6 +31,8 @@ mod transform_right_join;
 mod transform_right_semi_anti_join;
 mod transform_runtime_filter;
 
+mod window;
+
 pub use aggregator::build_partition_bucket;
 pub use aggregator::AggregateInjector;
 pub use aggregator::AggregatorParams;
