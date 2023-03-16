@@ -37,6 +37,7 @@ pub struct TransformWindow {
     partition_indices: Vec<usize>,
     order_by_indices: Vec<usize>,
 
+    place: StateAddr,
     arena: bumpalo::Bump,
     /// A queue of data blocks that we need to process.
     /// If partition is ended, we may free the data block from front of the queue.
@@ -169,20 +170,24 @@ impl TransformWindow {
 
     // advance the current row to the next row
     // if the current row is the last row of the current block, advance the current block and row = 0
-    fn advance_row(&mut self, row: &mut RowPtr) {
-        if row.row < self.block_rows(row) - 1 {
+    fn advance_row(&mut self, row: RowPtr) -> RowPtr {
+        let mut row = row.clone();
+        if row.row < self.block_rows(&row) - 1 {
             row.row += 1;
         } else {
             row.block += 1;
             row.row = 0;
         }
+        row
     }
 
-    fn add_block(&mut self, data: DataBlock) -> Result<()> {
-        self.blocks.push_back(WindowBlock {
-            block: data,
-            column_builder: todo!(),
-        });
+    fn add_block(&mut self, data: Option<DataBlock>) -> Result<()> {
+        if let Some(data) = data {
+            self.blocks.push_back(WindowBlock {
+                block: data,
+                column_builder: todo!(),
+            });
+        }
 
         loop {
             self.advance_partition();
@@ -208,7 +213,7 @@ impl TransformWindow {
                 self.prev_frame_start = self.frame_start;
                 self.prev_frame_end = self.frame_end;
 
-                self.advance_row(&mut self.current_row);
+                self.current_row = self.advance_row(self.current_row);
 
                 self.current_row_number += 1;
                 self.frame_started = false;
@@ -223,15 +228,53 @@ impl TransformWindow {
                 break;
             }
 
-            // star to new partition
+            // start to new partition
             self.partition_start = self.partition_end;
-            self.advance_row(&mut self.current_row);
+            self.current_row = self.advance_row(self.current_row);
+            self.partition_ended = false;
+
+            // reset frames
+            self.frame_start = self.partition_start;
+            self.frame_end = self.partition_start;
+            self.prev_frame_start = self.partition_start;
+            self.prev_frame_end = self.partition_start;
+
+            self.current_row_number = 1;
+            // reset states and builders
+            todo!()
         }
         todo!()
     }
 
-    fn apply_aggregate(&mut self) {
-        todo!()
+    fn apply_aggregate(&mut self) -> Result<()> {
+        let mut reset_state = false;
+        let mut row_start = self.frame_start;
+        let row_end = self.frame_end;
+
+        if self.frame_start == self.frame_end {
+            row_start = self.prev_frame_end;
+        } else {
+            reset_state = true;
+        }
+
+        for block in row_start.block..=row_end.block {
+            let block_start = if block == row_start.block {
+                row_start.row
+            } else {
+                0
+            };
+            let block_end = if block == row_end.block {
+                row_end.row
+            } else {
+                self.block_rows(&RowPtr { block, row: 0 })
+            };
+
+            for row in block_start..block_end {
+                self.function.accumulate_row(self.place, &[], row)?;
+            }
+        }
+
+        Ok(())
     }
 
     fn result_current_row(&mut self) {
@@ -252,6 +295,10 @@ impl Transform for TransformWindow {
     }
 
     fn on_finish(&mut self) -> Result<()> {
-        todo!()
+        self.input_is_finished = true;
+        self.add_block(None);
+
+        todo!();
+        Ok(())
     }
 }
