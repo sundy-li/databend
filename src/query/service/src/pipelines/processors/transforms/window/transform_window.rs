@@ -60,6 +60,9 @@ pub struct TransformWindow {
     frame_ended: bool,
 
     current_row: RowPtr,
+
+    // used in Rank()
+    current_row_number: u64,
     input_is_finished: bool,
 }
 
@@ -164,6 +167,10 @@ impl TransformWindow {
         todo!()
     }
 
+    fn advance_row(&mut self) {
+        todo!()
+    }
+
     fn add_block(&mut self, data: DataBlock) -> Result<()> {
         self.blocks.push_back(WindowBlock {
             block: data,
@@ -178,7 +185,7 @@ impl TransformWindow {
 
                 // Need more data to make the frame start.
                 if !self.frame_started {
-                    return;
+                    return Ok(());
                 }
 
                 self.advance_frame_end();
@@ -188,15 +195,39 @@ impl TransformWindow {
             }
 
             self.advance_frame_start();
-            if self.frame_started {
+            if !self.frame_started {
                 break;
             }
 
+            if self.frame_end < self.partition_end {
+                self.frame_end = self.partition_end;
+            }
+
             self.advance_frame_end();
-            if self.frame_ended {
+            if !self.frame_ended {
                 break;
             }
+
+            self.apply_aggregate();
+            self.result_current_row();
+
+            self.prev_frame_start = self.frame_start;
+            self.prev_frame_end = self.frame_end;
+
+            self.advance_row();
+
+            self.current_row_number += 1;
+            self.frame_started = false;
+            self.frame_ended = false;
         }
+        todo!()
+    }
+
+    fn apply_aggregate(&mut self) {
+        todo!()
+    }
+
+    fn result_current_row(&mut self) {
         todo!()
     }
 }
