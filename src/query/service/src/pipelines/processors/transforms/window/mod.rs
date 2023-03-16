@@ -13,8 +13,14 @@
 // limitations under the License.
 mod transform_window;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd)]
 pub(crate) struct RowPtr {
-    pub chunk_index: usize,
-    pub row_index: usize,
+    pub block: usize,
+    pub row: usize,
+}
+
+impl RowPtr {
+    pub fn new(block: usize, row: usize) -> Self {
+        Self { block, row }
+    }
 }
