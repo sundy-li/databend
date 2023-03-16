@@ -167,8 +167,15 @@ impl TransformWindow {
         todo!()
     }
 
-    fn advance_row(&mut self) {
-        todo!()
+    // advance the current row to the next row
+    // if the current row is the last row of the current block, advance the current block and row = 0
+    fn advance_row(&mut self, row: &mut RowPtr) {
+        if row.row < self.block_rows(row) - 1 {
+            row.row += 1;
+        } else {
+            row.block += 1;
+            row.row = 0;
+        }
     }
 
     fn add_block(&mut self, data: DataBlock) -> Result<()> {
@@ -182,43 +189,43 @@ impl TransformWindow {
 
             while self.current_row < self.partition_end {
                 self.advance_frame_start();
-
-                // Need more data to make the frame start.
                 if !self.frame_started {
-                    return Ok(());
+                    break;
+                }
+
+                if self.frame_end < self.partition_end {
+                    self.frame_end = self.partition_end;
                 }
 
                 self.advance_frame_end();
-                if self.frame_ended {
+                if !self.frame_ended {
                     break;
                 }
+
+                self.apply_aggregate();
+                self.result_current_row();
+
+                self.prev_frame_start = self.frame_start;
+                self.prev_frame_end = self.frame_end;
+
+                self.advance_row(&mut self.current_row);
+
+                self.current_row_number += 1;
+                self.frame_started = false;
+                self.frame_ended = false;
             }
 
-            self.advance_frame_start();
-            if !self.frame_started {
+            if self.input_is_finished {
+                return Ok(());
+            }
+
+            if !self.partition_ended {
                 break;
             }
 
-            if self.frame_end < self.partition_end {
-                self.frame_end = self.partition_end;
-            }
-
-            self.advance_frame_end();
-            if !self.frame_ended {
-                break;
-            }
-
-            self.apply_aggregate();
-            self.result_current_row();
-
-            self.prev_frame_start = self.frame_start;
-            self.prev_frame_end = self.frame_end;
-
-            self.advance_row();
-
-            self.current_row_number += 1;
-            self.frame_started = false;
-            self.frame_ended = false;
+            // star to new partition
+            self.partition_start = self.partition_end;
+            self.advance_row(&mut self.current_row);
         }
         todo!()
     }
