@@ -19,6 +19,8 @@ use common_exception::Result;
 use common_expression::BlockThresholds;
 use common_expression::ColumnId;
 use common_expression::Scalar;
+use rand::Rng;
+use rand::RngCore;
 use storages_common_table_meta::meta::BlockMeta;
 use storages_common_table_meta::meta::ColumnStatistics;
 use storages_common_table_meta::meta::Statistics;
@@ -161,4 +163,54 @@ pub fn reduce_block_metas<T: Borrow<BlockMeta>>(
         index_size,
         col_stats: merged_col_stats,
     })
+}
+
+fn build_stats() -> Statistics {
+    let mut rng = rand::thread_rng();
+    let mut col_stats = std::collections::HashMap::new();
+    for i in 0..16 {
+        if i % 2 == 0 {
+            let l1: u32 = rng.gen_range(199857..998571);
+            let mut a = vec![0u8; l1 as usize];
+
+            let l2: u32 = rng.gen_range(199857..998571);
+            let mut b = vec![0u8; l2 as usize];
+
+            rng.fill_bytes(a.as_mut_slice());
+            rng.fill_bytes(b.as_mut_slice());
+
+            col_stats.insert(i as u32, ColumnStatistics {
+                min: common_expression::Scalar::String(a),
+                max: common_expression::Scalar::String(b),
+                null_count: 4,
+                in_memory_size: 3,
+                distinct_of_values: Some(5),
+            });
+        } else {
+            col_stats.insert(i as u32, ColumnStatistics {
+                min: common_expression::Scalar::Number(
+                    common_expression::types::NumberScalar::UInt64(i as u64),
+                ),
+                max: common_expression::Scalar::Number(
+                    common_expression::types::NumberScalar::UInt64(3u64 * i as u64),
+                ),
+                null_count: 4,
+                in_memory_size: 3,
+                distinct_of_values: Some(5),
+            });
+        }
+    }
+    Statistics {
+        col_stats,
+        ..Default::default()
+    }
+}
+
+pub fn memory_test() {
+    for _i in 0..10 {
+        let stats: Vec<Statistics> = (0..32).map(|_| build_stats()).collect();
+        let merged = reduce_statistics(&stats).unwrap();
+        println!("len -> {:?}", merged.col_stats.len());
+    }
+    println!("done");
 }

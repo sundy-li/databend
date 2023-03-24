@@ -45,7 +45,9 @@ use databend_query::servers::HttpHandlerKind;
 use databend_query::servers::MySQLHandler;
 use databend_query::servers::Server;
 use databend_query::servers::ShutdownHandle;
+use databend_query::storages::fuse::statistics::memory_test;
 use databend_query::GlobalServices;
+use parking_lot::RwLock;
 use tracing::info;
 
 #[global_allocator]
@@ -66,12 +68,15 @@ fn main() {
     }
 }
 
-async fn read_segment(data_op: DataOperator, i: i32) -> usize {
+async fn read_segment(data: Arc<RwLock<i32>>, data_op: DataOperator, i: i32) -> usize {
     let index = i % 100;
     let file_name = format!("tmp/p{index}.txt");
 
     let time = std::time::Instant::now();
     let content = data_op.operator().read(&file_name).await.unwrap();
+
+    let mut data = data.write();
+    *data += 1;
 
     content.len() as usize
 }
@@ -83,17 +88,26 @@ async fn test(thread: usize, permits: usize) -> Result<()> {
     )?);
 
     let ss: Vec<usize> = (0..100000).collect();
+
+    let data = Arc::new(RwLock::new(0));
+
     for chunk in ss.chunks(thread) {
         let mut chunks = chunk.to_vec();
         let st = chunks[0];
         let data_op = common_storage::DataOperator::instance();
+
+        let data = data.clone();
 
         let query_result = runtime.spawn(async move {
             let mut iter = chunks.iter();
 
             let futures = std::iter::from_fn(move || {
                 if let Some(location) = iter.next() {
-                    Some(read_segment(data_op.clone(), *location as i32))
+                    Some(read_segment(
+                        data.clone(),
+                        data_op.clone(),
+                        *location as i32,
+                    ))
                 } else {
                     None
                 }
@@ -130,7 +144,9 @@ async fn main_entrypoint() -> Result<()> {
     // Make sure global services have been inited.
     GlobalServices::init(conf.clone()).await?;
 
-    let _ = test(16, 16).await;
+    // let _ = test(16, 16).await;
+
+    let _ = memory_test();
 
     info!("Shutdown server.");
     Ok(())
