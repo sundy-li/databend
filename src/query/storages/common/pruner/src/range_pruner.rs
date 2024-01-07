@@ -31,6 +31,7 @@ pub trait RangePruner {
     fn should_keep(
         &self,
         input: &StatisticsOfColumns,
+        location: Option<(String, u64)>,
         metas: Option<&HashMap<ColumnId, ColumnMeta>>,
     ) -> bool;
 
@@ -49,6 +50,7 @@ impl RangePruner for KeepTrue {
     fn should_keep(
         &self,
         _input: &StatisticsOfColumns,
+        _location: Option<(String, u64)>,
         _metas: Option<&HashMap<ColumnId, ColumnMeta>>,
     ) -> bool {
         true
@@ -61,6 +63,7 @@ impl RangePruner for KeepFalse {
     fn should_keep(
         &self,
         _input: &StatisticsOfColumns,
+        _location: Option<(String, u64)>,
         _metas: Option<&HashMap<ColumnId, ColumnMeta>>,
     ) -> bool {
         false
@@ -71,9 +74,10 @@ impl RangePruner for RangeIndex {
     fn should_keep(
         &self,
         stats: &StatisticsOfColumns,
+        location: Option<(String, u64)>,
         metas: Option<&HashMap<ColumnId, ColumnMeta>>,
     ) -> bool {
-        match self.apply(stats, |k| {
+        match self.apply(stats, location, |k| {
             if let Some(metas) = metas {
                 metas.get(k).is_none()
             } else {
@@ -94,7 +98,7 @@ impl RangePruner for RangeIndex {
         partition_columns: Option<&HashMap<String, Scalar>>,
     ) -> bool {
         match partition_columns {
-            None => self.should_keep(stats, None),
+            None => self.should_keep(stats, None, None),
             Some(partition_columns) => {
                 match self.apply_with_partition_columns(stats, partition_columns) {
                     Ok(r) => r,

@@ -111,7 +111,7 @@ impl HiveBlockFilter {
                 }
             }
 
-            if let Ok(ret) = filter.apply(&statistics, |_| false) {
+            if let Ok(ret) = filter.apply(&statistics, None, |_| false) {
                 if !ret {
                     return true;
                 }

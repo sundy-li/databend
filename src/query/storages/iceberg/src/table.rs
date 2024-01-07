@@ -288,7 +288,7 @@ impl IcebergTable {
             .into_iter()
             .filter(|df| {
                 if let Some(stats) = get_stats_of_data_file(&schema, df) {
-                    pruner.should_keep(&stats, None)
+                    pruner.should_keep(&stats, None, None)
                 } else {
                     true
                 }

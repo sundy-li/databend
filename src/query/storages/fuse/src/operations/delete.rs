@@ -350,7 +350,7 @@ impl FuseTable {
         if !block_metas.is_empty() {
             if let Some(range_index) = pruner.get_inverse_range_index() {
                 for (block_meta_idx, block_meta) in &block_metas {
-                    if !range_index.should_keep(&block_meta.as_ref().col_stats, None) {
+                    if !range_index.should_keep(&block_meta.as_ref().col_stats, None, None) {
                         // this block should be deleted completely
                         whole_block_deletions
                             .insert((block_meta_idx.segment_idx, block_meta_idx.block_idx));
