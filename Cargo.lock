@@ -4451,6 +4451,7 @@ dependencies = [
  "databend-common-expression",
  "databend-common-functions",
  "databend-storages-common-table-meta",
+ "log",
  "match-template",
  "minitrace",
  "rand 0.8.5",

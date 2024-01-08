@@ -79,8 +79,15 @@ impl RangeIndex {
     }
 
     #[minitrace::trace]
-    pub fn apply<F>(&self, stats: &StatisticsOfColumns, column_is_default: F) -> Result<bool>
-    where F: Fn(&ColumnId) -> bool {
+    pub fn apply<F>(
+        &self,
+        stats: &StatisticsOfColumns,
+        location: Option<(String, u64)>,
+        column_is_default: F,
+    ) -> Result<bool>
+    where
+        F: Fn(&ColumnId) -> bool,
+    {
         let input_domains = self
             .expr
             .column_refs()
@@ -103,7 +110,7 @@ impl RangeIndex {
                     &self.schema
                 );
 
-                let stats = column_ids
+                let stats: Vec<&ColumnStatistics> = column_ids
                     .iter()
                     .filter_map(|column_id| match stats.get(column_id) {
                         None => {
@@ -118,6 +125,30 @@ impl RangeIndex {
                         other => other,
                     })
                     .collect();
+
+                // DEBUG LOGS
+                if ty.remove_nullable().is_string() && !stats.is_empty() {
+                    let stat = &stats[0];
+
+                    let mismatch_nullable =
+                        !ty.is_nullable_or_null() && (stat.max().is_null() || stat.min().is_null());
+                    let mismatch_string = ty.is_string()
+                        && (stat.max().as_string().is_none() || stat.min().as_string().is_none());
+
+                    let mismatch_nullable_none_string = ty.is_nullable()
+                        && !stat.max.is_null()
+                        && !stat.min.is_null()
+                        && (stat.max().as_string().is_none() || stat.min().as_string().is_none());
+
+                    if mismatch_nullable || mismatch_string || mismatch_nullable_none_string {
+                        log::error!(
+                            "StringDomain is incorrect, location: {:?}, type: {:?}, doamin: {:?}",
+                            location,
+                            ty,
+                            stat
+                        );
+                    }
+                }
 
                 let domain = statistics_to_domain(stats, &ty);
                 Ok((name, domain))
@@ -151,7 +182,7 @@ impl RangeIndex {
             schema: self.schema.clone(),
             default_stats: self.default_stats.clone(),
         }
-        .apply(stats, |_| false)
+        .apply(stats, None, |_| false)
     }
 }
 
@@ -218,16 +249,21 @@ pub fn statistics_to_domain(mut stats: Vec<&ColumnStatistics>, data_type: &DataT
                             .unwrap(),
                     })
                 }
-                DataType::String => Domain::String(StringDomain {
-                    min: StringType::try_downcast_scalar(&stat.min().as_ref())
-                        .unwrap()
-                        .to_vec(),
-                    max: Some(
-                        StringType::try_downcast_scalar(&stat.max().as_ref())
+                DataType::String => {
+                    if stat.min().as_string().is_none() || stat.max().as_string().is_none() {
+                        log::error!("StringDomain is incorrect, {:?}", stat);
+                    }
+                    Domain::String(StringDomain {
+                        min: StringType::try_downcast_scalar(&stat.min().as_ref())
                             .unwrap()
-                            .to_vec()
-                    ),
-                }),
+                            .to_vec(),
+                        max: Some(
+                            StringType::try_downcast_scalar(&stat.max().as_ref())
+                                .unwrap()
+                                .to_vec(),
+                        ),
+                    })
+                }
                 DataType::Timestamp => TimestampType::upcast_domain(SimpleDomain {
                     min: TimestampType::try_downcast_scalar(&stat.min().as_ref()).unwrap(),
                     max: TimestampType::try_downcast_scalar(&stat.max().as_ref()).unwrap(),

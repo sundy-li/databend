@@ -319,6 +319,7 @@ impl FusePruner {
                                             if !range_index.should_keep(
                                                 &compact_segment_info.summary.col_stats,
                                                 None,
+                                                None,
                                             ) {
                                                 deleted_segments.push(DeletedSegmentInfo {
                                                     index: segment_location.segment_idx,

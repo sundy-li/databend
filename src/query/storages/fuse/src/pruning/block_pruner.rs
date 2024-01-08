@@ -112,7 +112,11 @@ impl BlockPruner {
 
                 let block_meta = block_meta.clone();
                 let row_count = block_meta.row_count;
-                if range_pruner.should_keep(&block_meta.col_stats, Some(&block_meta.col_metas)) {
+                if range_pruner.should_keep(
+                    &block_meta.col_stats,
+                    None,
+                    Some(&block_meta.col_metas),
+                ) {
                     // Perf.
                     {
                         metrics_inc_blocks_range_pruning_after(1);
@@ -261,7 +265,7 @@ impl BlockPruner {
                 break;
             }
             let row_count = block_meta.row_count;
-            if range_pruner.should_keep(&block_meta.col_stats, Some(&block_meta.col_metas))
+            if range_pruner.should_keep(&block_meta.col_stats, None, Some(&block_meta.col_metas))
                 && limit_pruner.within_limit(row_count)
             {
                 // Perf.

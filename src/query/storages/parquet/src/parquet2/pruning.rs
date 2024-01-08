@@ -134,7 +134,7 @@ impl PartitionPruner {
                     .zip(file_meta.row_groups.iter())
                     .enumerate()
                 {
-                    row_group_pruned[idx] = !pruner.should_keep(stats, None);
+                    row_group_pruned[idx] = !pruner.should_keep(stats, None, None);
                 }
                 Some(row_group_stats)
             } else {
@@ -370,7 +370,8 @@ fn filter_pages<R: Read + Seek>(
                 let stats = BatchStatistics::from_column_statistics(stats, &data_type.into())?;
                 for (page_num, intv) in page_intervals.iter().enumerate() {
                     let stat = stats.get(page_num);
-                    if pruner.should_keep(&HashMap::from([(*col_offset as u32, stat)]), None) {
+                    if pruner.should_keep(&HashMap::from([(*col_offset as u32, stat)]), None, None)
+                    {
                         row_selection.push(*intv);
                     }
                 }

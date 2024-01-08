@@ -89,7 +89,7 @@ impl HivePartitionPruner {
                 })
                 .collect();
 
-            if range_filter.apply(&block_stats, |_| false)? {
+            if range_filter.apply(&block_stats, None, |_| false)? {
                 filtered_partitions.push(partitions[idx].clone());
             }
         }
