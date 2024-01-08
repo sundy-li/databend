@@ -253,15 +253,26 @@ pub fn statistics_to_domain(mut stats: Vec<&ColumnStatistics>, data_type: &DataT
                     if stat.min().as_string().is_none() || stat.max().as_string().is_none() {
                         log::error!("StringDomain is incorrect, {:?}", stat);
                     }
-                    Domain::String(StringDomain {
-                        min: StringType::try_downcast_scalar(&stat.min().as_ref())
+
+                    let min = if stat.min().as_binary().is_some() {
+                        stat.min().as_binary().unwrap().to_vec()
+                    } else {
+                        StringType::try_downcast_scalar(&stat.min().as_ref())
                             .unwrap()
-                            .to_vec(),
-                        max: Some(
-                            StringType::try_downcast_scalar(&stat.max().as_ref())
-                                .unwrap()
-                                .to_vec(),
-                        ),
+                            .to_vec()
+                    };
+
+                    let max = if stat.max().as_binary().is_some() {
+                        stat.max().as_binary().unwrap().to_vec()
+                    } else {
+                        StringType::try_downcast_scalar(&stat.max().as_ref())
+                            .unwrap()
+                            .to_vec()
+                    };
+
+                    Domain::String(StringDomain {
+                        min,
+                        max: Some(max),
                     })
                 }
                 DataType::Timestamp => TimestampType::upcast_domain(SimpleDomain {
