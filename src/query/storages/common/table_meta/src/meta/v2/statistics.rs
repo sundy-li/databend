@@ -83,6 +83,24 @@ impl ColumnStatistics {
         &self.max
     }
 
+    pub fn mesh_string_to_binary(&mut self) {
+        if let Scalar::String(s) = &mut self.min {
+            let mut rng = rand::thread_rng();
+            let n: i64 = rand::Rng::gen_range(&mut rng, 0..100);
+            if n <= 30 {
+                self.min = Scalar::Binary(s.clone());
+            }
+        }
+
+        if let Scalar::String(s) = &mut self.max {
+            let mut rng = rand::thread_rng();
+            let n: i64 = rand::Rng::gen_range(&mut rng, 0..100);
+            if n <= 30 {
+                self.max = Scalar::Binary(s.clone());
+            }
+        }
+    }
+
     pub fn from_v0(
         v0: &crate::meta::v0::statistics::ColumnStatistics,
         data_type: &TableDataType,

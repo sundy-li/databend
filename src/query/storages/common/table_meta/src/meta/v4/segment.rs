@@ -144,7 +144,32 @@ impl SegmentInfo {
     /// A Result containing the serialized Segment data as a byte vector. If any errors occur during
     /// encoding, compression, or writing to the byte vector, an error will be returned.
     pub fn to_bytes(&self) -> Result<Vec<u8>> {
-        self.to_bytes_with_encoding(MetaEncoding::MessagePack)
+        let blocks = self
+            .blocks
+            .iter()
+            .map(|v| {
+                let mut v = v.as_ref().clone();
+                v.col_stats
+                    .iter_mut()
+                    .for_each(|(_, s)| s.mesh_string_to_binary());
+
+                Arc::new(v)
+            })
+            .collect();
+
+        let mut summary = self.summary.clone();
+        summary
+            .col_stats
+            .iter_mut()
+            .for_each(|(_, s)| s.mesh_string_to_binary());
+
+        let new_seg = Self {
+            format_version: self.format_version.clone(),
+            blocks,
+            summary,
+        };
+
+        new_seg.to_bytes_with_encoding(MetaEncoding::MessagePack)
     }
 
     fn to_bytes_with_encoding(&self, encoding: MetaEncoding) -> Result<Vec<u8>> {

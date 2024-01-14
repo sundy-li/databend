@@ -156,10 +156,17 @@ impl TableSnapshot {
     /// A Result containing the serialized data as a byte vector. If any errors occur during
     /// encoding, compression, or writing to the byte vector, an error will be returned.
     pub fn to_bytes(&self) -> Result<Vec<u8>> {
+        let mut new_snapshot = self.clone();
+        new_snapshot
+            .summary
+            .col_stats
+            .iter_mut()
+            .for_each(|(_, s)| s.mesh_string_to_binary());
+
         let encoding = MetaEncoding::MessagePack;
         let compression = MetaCompression::default();
 
-        let data = encode(&encoding, &self)?;
+        let data = encode(&encoding, &new_snapshot)?;
         let data_compress = compress(&compression, data)?;
 
         let data_size = self.format_version.to_le_bytes().len()
