@@ -100,12 +100,13 @@ impl BlockReader {
         }
 
         // fallback to arrow rs reader for new version
-        log::debug!("read block {block_path}");
-        let use_v2 = block_path.starts_with("g")
+        let use_v2 = block_path.contains("_b/g")
             && self
                 .project_column_nodes
                 .iter()
                 .any(|f| matches!(f.field.data_type, ArrowType::Decimal256(_, _)));
+
+        log::info!("read block {block_path} with v2 {use_v2}");
 
         let parquet_schema_descriptor = if use_v2 {
             Some(&self.parquet_schema_descriptor_v2)
