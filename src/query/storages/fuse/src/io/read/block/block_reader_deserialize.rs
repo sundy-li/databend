@@ -46,7 +46,7 @@ pub struct FieldDeserializationContext<'a> {
     pub(crate) num_rows: usize,
     pub(crate) compression: &'a Compression,
     pub(crate) uncompressed_buffer: &'a Option<Arc<UncompressedBuffer>>,
-    pub(crate) parquet_schema_descriptor: &'a Option<SchemaDescriptor>,
+    pub(crate) parquet_schema_descriptor: Option<&'a SchemaDescriptor>,
 }
 
 impl BlockReader {

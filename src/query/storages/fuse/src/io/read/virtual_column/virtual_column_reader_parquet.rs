@@ -215,7 +215,7 @@ impl VirtualColumnReader {
                 num_rows: part.nums_rows,
                 compression: &part.compression,
                 uncompressed_buffer: &uncompressed_buffer,
-                parquet_schema_descriptor: &Some(parquet_schema_descriptor),
+                parquet_schema_descriptor: Some(&parquet_schema_descriptor),
             };
             for (index, virtual_column) in self.virtual_column_infos.iter().enumerate() {
                 for (i, f) in schema.fields.iter().enumerate() {

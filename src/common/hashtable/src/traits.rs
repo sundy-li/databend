@@ -14,7 +14,7 @@
 
 // To avoid RUSTFLAGS="-C target-feature=+sse4.2" warning.
 
-use std::hash::BuildHasher;
+
 use std::iter::TrustedLen;
 use std::mem::MaybeUninit;
 use std::num::NonZeroU64;

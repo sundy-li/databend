@@ -56,8 +56,13 @@ pub fn schema_to_metadata_key(schema: &Schema) -> KeyValue {
     }
 }
 
-/// Creates a [`ParquetType`] from a [`Field`].
+// For arrow2 parquet, decimal256 will use 32 width if precision > 38
 pub fn to_parquet_type(field: &Field) -> Result<ParquetType> {
+    to_parquet_type_with_options(field, true)
+}
+
+/// Creates a [`ParquetType`] from a [`Field`].
+pub fn to_parquet_type_with_options(field: &Field, decimal256_max: bool) -> Result<ParquetType> {
     let name = field.name.clone();
     let repetition = if field.is_nullable {
         Repetition::Optional
@@ -272,7 +277,7 @@ pub fn to_parquet_type(field: &Field) -> Result<ParquetType> {
             // recursively convert children to types/nodes
             let fields = fields
                 .iter()
-                .map(to_parquet_type)
+                .map(|f| to_parquet_type_with_options(f, decimal256_max))
                 .collect::<Result<Vec<_>>>()?;
             Ok(ParquetType::from_group(
                 name, repetition, None, None, fields, None,
@@ -280,7 +285,7 @@ pub fn to_parquet_type(field: &Field) -> Result<ParquetType> {
         }
         DataType::Dictionary(_, value, _) => {
             let dict_field = Field::new(name.as_str(), value.as_ref().clone(), field.is_nullable);
-            to_parquet_type(&dict_field)
+            to_parquet_type_with_options(&dict_field, decimal256_max)
         }
         DataType::FixedSizeBinary(size) => Ok(ParquetType::try_from_primitive(
             name,
@@ -346,14 +351,26 @@ pub fn to_parquet_type(field: &Field) -> Result<ParquetType> {
                     None,
                 )?)
             } else {
-                Ok(ParquetType::try_from_primitive(
-                    name,
-                    PhysicalType::FixedLenByteArray(32),
-                    repetition,
-                    Some(PrimitiveConvertedType::Decimal(precision, scale)),
-                    logical_type,
-                    None,
-                )?)
+                if decimal256_max {
+                    Ok(ParquetType::try_from_primitive(
+                        name,
+                        PhysicalType::FixedLenByteArray(32),
+                        repetition,
+                        Some(PrimitiveConvertedType::Decimal(precision, scale)),
+                        logical_type,
+                        None,
+                    )?)
+                } else {
+                    let len = decimal_length_from_precision(precision);
+                    Ok(ParquetType::try_from_primitive(
+                        name,
+                        PhysicalType::FixedLenByteArray(len),
+                        repetition,
+                        Some(PrimitiveConvertedType::Decimal(precision, scale)),
+                        logical_type,
+                        None,
+                    )?)
+                }
             }
         }
         DataType::Interval(_) => Ok(ParquetType::try_from_primitive(
@@ -375,7 +392,7 @@ pub fn to_parquet_type(field: &Field) -> Result<ParquetType> {
                     Repetition::Repeated,
                     None,
                     None,
-                    vec![to_parquet_type(f)?],
+                    vec![to_parquet_type_with_options(f, decimal256_max)?],
                     None,
                 )],
                 None,
@@ -391,7 +408,7 @@ pub fn to_parquet_type(field: &Field) -> Result<ParquetType> {
                 Repetition::Repeated,
                 None,
                 None,
-                vec![to_parquet_type(f)?],
+                vec![to_parquet_type_with_options(f, decimal256_max)?],
                 None,
             )],
             None,

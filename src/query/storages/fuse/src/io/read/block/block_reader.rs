@@ -15,14 +15,17 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+
 use databend_common_arrow::arrow::datatypes::Field;
 use databend_common_arrow::arrow::io::parquet::write::to_parquet_schema;
+use databend_common_arrow::arrow::io::parquet::write::to_parquet_schema_with_options;
 use databend_common_arrow::parquet::metadata::SchemaDescriptor;
 use databend_common_catalog::plan::Projection;
 use databend_common_catalog::table_context::TableContext;
 use databend_common_exception::ErrorCode;
 use databend_common_exception::Result;
 use databend_common_expression::types::DataType;
+
 use databend_common_expression::ColumnId;
 use databend_common_expression::DataField;
 use databend_common_expression::DataSchema;
@@ -46,6 +49,7 @@ pub struct BlockReader {
     pub(crate) project_indices: BTreeMap<FieldIndex, (ColumnId, Field, DataType)>,
     pub(crate) project_column_nodes: Vec<ColumnNode>,
     pub(crate) parquet_schema_descriptor: SchemaDescriptor,
+    pub(crate) parquet_schema_descriptor_v2: SchemaDescriptor,
     pub(crate) default_vals: Vec<Scalar>,
     pub query_internal_columns: bool,
     // used for mutation to update stream columns.
@@ -126,6 +130,7 @@ impl BlockReader {
 
         let arrow_schema = schema.as_ref().into();
         let parquet_schema_descriptor = to_parquet_schema(&arrow_schema)?;
+        let parquet_schema_descriptor_v2 = to_parquet_schema_with_options(&arrow_schema, false)?;
 
         let column_nodes = ColumnNodes::new_from_schema(&arrow_schema, Some(&schema));
 
@@ -144,6 +149,7 @@ impl BlockReader {
             project_indices,
             project_column_nodes,
             parquet_schema_descriptor,
+            parquet_schema_descriptor_v2,
             default_vals,
             query_internal_columns,
             update_stream_columns,

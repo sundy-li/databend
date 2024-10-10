@@ -106,6 +106,7 @@ pub use schema::to_parquet_type;
 #[cfg_attr(docsrs, doc(cfg(feature = "io_parquet_async")))]
 pub use sink::FileSink;
 
+use self::schema::to_parquet_type_with_options;
 use crate::arrow::compute::aggregate::estimated_bytes_size;
 
 /// returns offset and length to slice the leaf values
@@ -149,6 +150,19 @@ pub fn to_parquet_schema(schema: &Schema) -> Result<SchemaDescriptor> {
         .fields
         .iter()
         .map(to_parquet_type)
+        .collect::<Result<Vec<_>>>()?;
+    Ok(SchemaDescriptor::new("root".to_string(), parquet_types))
+}
+
+/// Creates a parquet [`SchemaDescriptor`] from a [`Schema`].
+pub fn to_parquet_schema_with_options(
+    schema: &Schema,
+    decimal256_max: bool,
+) -> Result<SchemaDescriptor> {
+    let parquet_types = schema
+        .fields
+        .iter()
+        .map(|f| to_parquet_type_with_options(f, decimal256_max))
         .collect::<Result<Vec<_>>>()?;
     Ok(SchemaDescriptor::new("root".to_string(), parquet_types))
 }

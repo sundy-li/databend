@@ -17,6 +17,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use databend_common_arrow::arrow::chunk::Chunk;
+use databend_common_arrow::arrow::datatypes::DataType as ArrowType;
 use databend_common_arrow::arrow::datatypes::Field;
 use databend_common_arrow::arrow::io::parquet::read::column_iter_to_arrays;
 use databend_common_arrow::arrow::io::parquet::read::nested_column_iter_to_arrays;
@@ -24,7 +25,6 @@ use databend_common_arrow::arrow::io::parquet::read::ArrayIter;
 use databend_common_arrow::arrow::io::parquet::read::InitNested;
 use databend_common_arrow::parquet::compression::Compression as ParquetCompression;
 use databend_common_arrow::parquet::metadata::ColumnDescriptor;
-use databend_common_arrow::parquet::metadata::SchemaDescriptor;
 use databend_common_arrow::parquet::read::PageMetaData;
 use databend_common_arrow::parquet::read::PageReader;
 use databend_common_exception::ErrorCode;
@@ -99,6 +99,20 @@ impl BlockReader {
             return self.build_default_values_block(num_rows);
         }
 
+        // fallback to arrow rs reader for new version
+        log::debug!("read block {block_path}");
+        let use_v2 = block_path.starts_with("g")
+            && self
+                .project_column_nodes
+                .iter()
+                .any(|f| matches!(f.field.data_type, ArrowType::Decimal256(_, _)));
+
+        let parquet_schema_descriptor = if use_v2 {
+            Some(&self.parquet_schema_descriptor_v2)
+        } else {
+            Some(&self.parquet_schema_descriptor)
+        };
+
         let mut need_default_vals = Vec::with_capacity(self.project_column_nodes.len());
         let mut need_to_fill_default_val = false;
         let mut deserialized_column_arrays = Vec::with_capacity(self.projection.len());
@@ -108,7 +122,7 @@ impl BlockReader {
             num_rows,
             compression,
             uncompressed_buffer: &uncompressed_buffer,
-            parquet_schema_descriptor: &None::<SchemaDescriptor>,
+            parquet_schema_descriptor,
         };
         for column_node in &self.project_column_nodes {
             let deserialized_column = self

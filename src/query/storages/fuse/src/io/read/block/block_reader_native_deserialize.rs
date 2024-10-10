@@ -27,7 +27,6 @@ use databend_common_arrow::native::read::reader::NativeReader;
 use databend_common_arrow::native::read::ArrayIter;
 use databend_common_arrow::parquet::metadata::ColumnDescriptor;
 use databend_common_arrow::parquet::metadata::Descriptor;
-use databend_common_arrow::parquet::metadata::SchemaDescriptor;
 use databend_common_arrow::parquet::schema::types::FieldInfo;
 use databend_common_arrow::parquet::schema::types::ParquetType;
 use databend_common_arrow::parquet::schema::types::PhysicalType;
@@ -108,7 +107,7 @@ impl BlockReader {
             num_rows,
             compression,
             uncompressed_buffer: &uncompressed_buffer,
-            parquet_schema_descriptor: &None::<SchemaDescriptor>,
+            parquet_schema_descriptor: None,
         };
 
         for column_node in &self.project_column_nodes {
