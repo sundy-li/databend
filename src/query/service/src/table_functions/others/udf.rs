@@ -38,6 +38,7 @@ use databend_common_exception::ErrorCode;
 use databend_common_exception::Result;
 use databend_common_exception::ToErrorCode;
 use databend_common_expression::types::StringType;
+use databend_common_expression::udf_client::UDFClient;
 use databend_common_expression::udf_client::UDFFlightClient;
 use databend_common_expression::DataBlock;
 use databend_common_expression::FromData;
@@ -144,7 +145,7 @@ impl Table for UdfEchoTable {
 
         let endpoint =
             UDFFlightClient::build_endpoint(&self.address, connect_timeout, request_timeout)?;
-        let mut client = UDFFlightClient::connect(endpoint, connect_timeout, 65536)
+        let mut client = UDFClient::connect(endpoint, connect_timeout, 65536)
             .await?
             .with_tenant(ctx.get_tenant().tenant_name())?
             .with_func_name("builtin_echo")?
@@ -159,7 +160,7 @@ impl Table for UdfEchoTable {
         )]);
 
         let batch = RecordBatch::try_new(Arc::new(schema), vec![Arc::new(array)]).unwrap();
-        let result_batch = client.do_exchange("builtin_echo", batch).await?;
+        let result_batch = client.execute_udf("builtin_echo", batch).await?;
         let result = result_batch
             .column(0)
             .as_any()

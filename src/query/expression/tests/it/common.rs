@@ -14,6 +14,7 @@
 
 use std::io::Write;
 
+use databend_common_base::base::tokio;
 use databend_common_expression::BlockEntry;
 use databend_common_expression::BlockRowIndex;
 use databend_common_expression::Column;

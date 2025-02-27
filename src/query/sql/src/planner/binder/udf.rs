@@ -24,6 +24,7 @@ use databend_common_ast::ast::UDFDefinition;
 use databend_common_exception::ErrorCode;
 use databend_common_exception::Result;
 use databend_common_expression::types::DataType;
+use databend_common_expression::udf_client::UDFClient;
 use databend_common_expression::udf_client::UDFFlightClient;
 use databend_common_expression::DataField;
 use databend_common_meta_app::principal::LambdaUDF;
@@ -107,7 +108,7 @@ impl Binder {
                 let endpoint =
                     UDFFlightClient::build_endpoint(address, connect_timeout, request_timeout)?;
 
-                let mut client = UDFFlightClient::connect(endpoint, connect_timeout, batch_rows)
+                let mut client = UDFClient::connect(endpoint, connect_timeout, batch_rows)
                     .await?
                     .with_tenant(self.ctx.get_tenant().tenant_name())?
                     .with_func_name(&name)?

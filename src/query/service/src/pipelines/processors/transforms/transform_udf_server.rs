@@ -25,6 +25,7 @@ use databend_common_catalog::table_context::TableContext;
 use databend_common_exception::ErrorCode;
 use databend_common_exception::Result;
 use databend_common_expression::udf_client::error_kind;
+use databend_common_expression::udf_client::UDFClient;
 use databend_common_expression::udf_client::UDFFlightClient;
 use databend_common_expression::variant_transform::contains_variant;
 use databend_common_expression::variant_transform::transform_variant;
@@ -154,7 +155,7 @@ impl TransformUdfServer {
             .map_err(|err| ErrorCode::from_string(format!("{err}")))?;
 
         let instant = Instant::now();
-        let mut client = UDFFlightClient::connect(endpoint, connect_timeout, 65536)
+        let mut client = UDFClient::connect(endpoint, connect_timeout, 65536)
             .await?
             .with_tenant(ctx.get_tenant().tenant_name())?
             .with_func_name(&func.name)?
@@ -169,7 +170,7 @@ impl TransformUdfServer {
         record_request_external_batch_rows(func.func_name.clone(), num_rows);
 
         let result_batch = client
-            .do_exchange(&func.func_name, input_batch.clone())
+            .execute_udf(&func.func_name, input_batch.clone())
             .await;
 
         let request_duration = instant.elapsed() - connect_duration;
