@@ -168,7 +168,7 @@ impl ColumnBindingBuilder {
     }
 
     pub fn build(self) -> ColumnBinding {
-        ColumnBinding {
+        let c = ColumnBinding {
             database_name: self.database_name,
             table_name: self.table_name,
             column_position: self.column_position,
@@ -179,6 +179,10 @@ impl ColumnBindingBuilder {
             visibility: self.visibility,
             virtual_expr: self.virtual_expr,
             is_srf: self.is_srf,
+        };
+        if c.index == 167 || c.index == 173 {
+            println!("ColumnBinding {:?}", c);
         }
+        c
     }
 }
