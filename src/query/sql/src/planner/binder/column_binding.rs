@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use core::panic;
+
 use databend_common_expression::types::DataType;
 use databend_common_expression::ColumnIndex;
 
@@ -85,6 +87,10 @@ impl ColumnBinding {
 
     pub fn is_dummy(&self) -> bool {
         self.index >= DummyColumnType::Other.type_identifier()
+    }
+
+    pub fn is_srf(&self) -> bool {
+        self.is_srf
     }
 }
 
@@ -180,8 +186,10 @@ impl ColumnBindingBuilder {
             virtual_expr: self.virtual_expr,
             is_srf: self.is_srf,
         };
-        if c.index == 167 || c.index == 173 {
+        let id = std::env::var("PANIC_INDEX").unwrap_or_default();
+        if c.index.to_string() == id {
             println!("ColumnBinding {:?}", c);
+            panic!("error in creating index {} | {}", c.index, c.column_name);
         }
         c
     }

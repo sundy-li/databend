@@ -516,7 +516,7 @@ impl BindContext {
     }
 
     pub fn has_srf_recursive(&self) -> bool {
-        self.columns.iter().any(|x| x.is_srf)
+        self.columns.iter().any(|x| x.is_srf())
             || !self.srf_info.srfs.is_empty()
             || self
                 .parent

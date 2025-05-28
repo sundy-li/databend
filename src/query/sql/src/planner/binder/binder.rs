@@ -896,6 +896,7 @@ impl<'a> Binder {
             data_type.clone(),
             scalar_expr,
         );
+
         ColumnBindingBuilder::new(column_name, index, Box::new(data_type), Visibility::Visible)
             .build()
     }
