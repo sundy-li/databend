@@ -24,6 +24,7 @@ use databend_common_expression::DataSchemaRefExt;
 use databend_common_expression::RemoteExpr;
 use databend_common_expression::Scalar;
 use databend_common_functions::BUILTIN_FUNCTIONS;
+use log::info;
 
 use crate::executor::explain::PlanStatsInfo;
 use crate::executor::physical_plan::PhysicalPlan;
@@ -130,6 +131,13 @@ impl PhysicalPlanBuilder {
         stat_info: PlanStatsInfo,
     ) -> Result<PhysicalPlan> {
         let input_schema = input.output_schema()?;
+
+        info!(
+            "[xxx] --create_eval_scalar input_schema: {input_schema:?}, input: {}",
+            input.name()
+        );
+        info!("[xxx] --create_eval_scalar eval_scalar: {eval_scalar:?}");
+
         let exprs = eval_scalar
             .items
             .iter()
@@ -142,6 +150,8 @@ impl PhysicalPlanBuilder {
                 Ok((expr.as_remote_expr(), item.index))
             })
             .collect::<Result<Vec<_>>>()?;
+
+        info!("[xxx] --create_eval_scalar done");
 
         let exprs = exprs
             .into_iter()
