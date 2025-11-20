@@ -96,7 +96,29 @@ impl ScriptRuntime {
                     let import_dir = temp_dir.path().display();
                     let mut script = String::from("import sys\n");
                     script.push_str(&format!(
-                        r#"sys._xoptions['databend_import_directory'] = '{dir}'
+                        r#"previous_dir = sys._xoptions.get('databend_import_directory')
+sys._xoptions['databend_import_directory'] = '{dir}'
+if previous_dir and previous_dir != '{dir}':
+    modules_to_delete = []
+    for name, module in list(sys.modules.items()):
+        module_file = getattr(module, '__file__', None)
+        if isinstance(module_file, str) and module_file.startswith(previous_dir):
+            modules_to_delete.append(name)
+            continue
+        module_paths = getattr(module, '__path__', None)
+        if module_paths:
+            for module_path in module_paths:
+                module_path_str = str(module_path)
+                if module_path_str.startswith(previous_dir):
+                    modules_to_delete.append(name)
+                    break
+    for name in modules_to_delete:
+        sys.modules.pop(name, None)
+    if previous_dir in sys.path:
+        try:
+            sys.path.remove(previous_dir)
+        except ValueError:
+            pass
 if '{dir}' not in sys.path:
     sys.path.append('{dir}')
 "#,
