@@ -103,6 +103,8 @@ if '{dir}' not in sys.path:
                         dir = import_dir,
                     ));
 
+                    println!("script: {script}");
+
                     let stage_paths = Self::collect_stage_sys_paths(func, temp_dir.as_ref());
                     if !stage_paths.is_empty() {
                         script.push_str("for _databend_zip in (");
@@ -534,6 +536,13 @@ if "DATABEND_RESTRICTED_PYTHON" not in sys._xoptions:
                 &self.handler,
             )?;
 
+            println!(
+                "Python UDF runtime for {:?} #{} took: {:?}",
+                self.name,
+                self.code,
+                start.elapsed()
+            );
+
             log::info!(
                 "Init Python UDF runtime for {:?} #{} took: {:?}",
                 self.name,
@@ -653,6 +662,12 @@ impl TransformUdfScript {
 
                             let archive_path = venv::archive_env(temp_dir.path())
                                 .map_err(ErrorCode::from_string)?;
+
+                            println!(
+                                "insert cache entry: {:?} of {:?}",
+                                key.dependencies, archive_path
+                            );
+
                             let cache_entry =
                                 venv::PyVenvCacheEntry::new(temp_dir.clone(), archive_path);
                             w.insert(key, cache_entry);
@@ -675,6 +690,7 @@ impl TransformUdfScript {
                         code.language
                     ))
                 })?;
+                println!("insert runtime: {:?} of {:?}", func.name, temp_dir);
                 entry.insert((Arc::new(runtime), temp_dir));
             };
         }
@@ -1088,10 +1104,12 @@ mod venv {
 
         pub fn materialize(&self) -> Result<Arc<TempDir>, String> {
             if let Some(existing) = self.temp_dir.lock().upgrade() {
+                println!("existing: {:?}", existing);
                 return Ok(existing);
             }
 
             let temp_dir = Arc::new(restore_env(&self.archive_path)?);
+            println!("resolve from {:?} to {:?}", self.archive_path, temp_dir);
             *self.temp_dir.lock() = Arc::downgrade(&temp_dir);
             Ok(temp_dir)
         }
