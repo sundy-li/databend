@@ -97,30 +97,102 @@ impl ScriptRuntime {
                     let mut script = String::from("import sys\n");
                     script.push_str(&format!(
                         r#"previous_dir = sys._xoptions.get('databend_import_directory')
-sys._xoptions['databend_import_directory'] = '{dir}'
-if previous_dir and previous_dir != '{dir}':
-    modules_to_delete = []
-    for name, module in list(sys.modules.items()):
+new_dir = '{dir}'
+sys._xoptions['databend_import_directory'] = new_dir
+
+def _rewrite_path(path_value):
+    if isinstance(path_value, str) and path_value.startswith(previous_dir):
+        return new_dir + path_value[len(previous_dir):]
+    return None
+
+if previous_dir and previous_dir != new_dir:
+    for module in list(sys.modules.values()):
         module_file = getattr(module, '__file__', None)
-        if isinstance(module_file, str) and module_file.startswith(previous_dir):
-            modules_to_delete.append(name)
-            continue
+        rewritten = _rewrite_path(module_file)
+        if rewritten:
+            try:
+                module.__file__ = rewritten
+            except Exception:
+                pass
+
+        module_cached = getattr(module, '__cached__', None)
+        rewritten_cached = _rewrite_path(module_cached)
+        if rewritten_cached:
+            try:
+                module.__cached__ = rewritten_cached
+            except Exception:
+                pass
+
         module_paths = getattr(module, '__path__', None)
         if module_paths:
-            for module_path in module_paths:
-                module_path_str = str(module_path)
-                if module_path_str.startswith(previous_dir):
-                    modules_to_delete.append(name)
-                    break
-    for name in modules_to_delete:
-        sys.modules.pop(name, None)
+            try:
+                iterable_paths = list(module_paths)
+            except TypeError:
+                iterable_paths = None
+            if iterable_paths is not None:
+                new_paths = []
+                changed = False
+                for module_path in iterable_paths:
+                    module_path_str = str(module_path)
+                    rewritten_path = _rewrite_path(module_path_str)
+                    if rewritten_path:
+                        new_paths.append(rewritten_path)
+                        changed = True
+                    else:
+                        new_paths.append(module_path)
+                if changed:
+                    try:
+                        module_paths[:] = new_paths
+                    except Exception:
+                        try:
+                            module.__path__ = new_paths
+                        except Exception:
+                            pass
+
+        module_spec = getattr(module, '__spec__', None)
+        if module_spec:
+            origin = getattr(module_spec, 'origin', None)
+            rewritten_origin = _rewrite_path(origin)
+            if rewritten_origin:
+                try:
+                    module_spec.origin = rewritten_origin
+                except Exception:
+                    pass
+
+            submodule_locations = getattr(module_spec, 'submodule_search_locations', None)
+            if submodule_locations:
+                try:
+                    iterable_locs = list(submodule_locations)
+                except TypeError:
+                    iterable_locs = None
+                if iterable_locs is not None:
+                    new_locs = []
+                    changed = False
+                    for loc in iterable_locs:
+                        loc_str = str(loc)
+                        rewritten_loc = _rewrite_path(loc_str)
+                        if rewritten_loc:
+                            new_locs.append(rewritten_loc)
+                            changed = True
+                        else:
+                            new_locs.append(loc)
+                    if changed:
+                        try:
+                            submodule_locations[:] = new_locs
+                        except Exception:
+                            try:
+                                module_spec.submodule_search_locations = new_locs
+                            except Exception:
+                                pass
+
     if previous_dir in sys.path:
         try:
             sys.path.remove(previous_dir)
         except ValueError:
             pass
-if '{dir}' not in sys.path:
-    sys.path.append('{dir}')
+
+if new_dir not in sys.path:
+    sys.path.append(new_dir)
 "#,
                         dir = import_dir,
                     ));
