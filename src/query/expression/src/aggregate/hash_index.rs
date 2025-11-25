@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::row_ptr::RowLayout;
 use super::PartitionedPayload;
 use super::ProbeState;
 use super::RowPtr;
@@ -77,7 +78,9 @@ impl HashIndex {
 
     pub fn reset(&mut self) {
         self.count = 0;
-        self.entries.fill(Entry::default());
+        unsafe {
+            std::ptr::write_bytes(self.entries.as_mut_ptr(), 0, self.entries.len());
+        }
     }
 
     pub fn resize_threshold(&self) -> usize {
@@ -143,6 +146,8 @@ pub(super) trait TableAdapter {
         need_compare_count: usize,
         no_match_count: usize,
     ) -> usize;
+
+    fn row_layout(&self) -> &RowLayout;
 }
 
 impl HashIndex {
@@ -168,6 +173,7 @@ impl HashIndex {
             state.no_match_vector[row] = row;
         }
 
+        let has_states = adapter.row_layout().states_layout.is_some();
         let mut new_group_count = 0;
         let mut remaining_entries = row_count;
 
@@ -217,6 +223,10 @@ impl HashIndex {
                     debug_assert!(entry.is_occupied());
                     debug_assert_eq!(entry.get_salt(), (items[row].hash >> 48) as u16);
                     state.addresses[row] = entry.get_pointer();
+                    if has_states {
+                        state.state_places[row] =
+                            state.addresses[row].state_addr(adapter.row_layout());
+                    }
                 }
 
                 // 4. compare
@@ -262,6 +272,10 @@ impl<'a> TableAdapter for AdapterImpl<'a> {
             (need_compare_count, no_match_count),
         )
     }
+
+    fn row_layout(&self) -> &RowLayout {
+        &self.payload.row_layout
+    }
 }
 
 #[cfg(test)]
@@ -276,6 +290,7 @@ mod tests {
         payload: Vec<(u64, u64, u64)>, // (key, hash, value)
         init_count: usize,
         pin_data: Box<[u8]>,
+        row_layout: RowLayout,
     }
 
     impl TestTableAdapter {
@@ -285,6 +300,14 @@ mod tests {
                 init_count: payload.len(),
                 payload,
                 pin_data: vec![0; 1000].into(),
+                row_layout: RowLayout {
+                    hash_offset: 0,
+                    state_offset: 0,
+                    validity_offsets: vec![],
+                    group_offsets: vec![],
+                    group_sizes: vec![],
+                    states_layout: None,
+                },
             }
         }
 
@@ -366,6 +389,10 @@ mod tests {
             }
 
             no_match_count
+        }
+
+        fn row_layout(&self) -> &RowLayout {
+            &self.row_layout
         }
     }
 

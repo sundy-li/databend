@@ -204,6 +204,7 @@ impl Payload {
         group_hashes: &[u64; BATCH_SIZE],
         address: &mut [RowPtr; BATCH_SIZE],
         page_index: &mut [usize],
+        state_places: &mut [StateAddr; BATCH_SIZE],
         new_group_rows: usize,
         group_columns: ProjectedBlock,
     ) {
@@ -224,6 +225,7 @@ impl Payload {
             group_hashes,
             address,
             page_index,
+            state_places,
             new_group_rows,
             group_columns,
         )
@@ -235,6 +237,7 @@ impl Payload {
         group_hashes: &[u64; BATCH_SIZE],
         address: &mut [RowPtr; BATCH_SIZE],
         page_index: &mut [usize],
+        state_places: &mut [StateAddr; BATCH_SIZE],
         new_group_rows: usize,
         group_columns: ProjectedBlock,
     ) {
@@ -305,6 +308,7 @@ impl Payload {
             {
                 let place = StateAddr::from(place);
                 address[idx].set_state_addr(&self.row_layout, &place);
+                state_places[idx] = place;
                 let page = &mut self.pages[page_index[idx]];
                 for (aggr, loc) in self.aggrs.iter().zip(states_loc.iter()) {
                     aggr.init_state(AggrState::new(place, loc));

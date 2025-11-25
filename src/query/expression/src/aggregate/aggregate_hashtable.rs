@@ -199,10 +199,6 @@ impl AggregateHashTable {
         };
 
         if !self.payload.aggrs.is_empty() {
-            for i in 0..row_count {
-                state.state_places[i] = state.addresses[i].state_addr(&self.payload.row_layout);
-            }
-
             let state_places = &state.state_places.as_slice()[0..row_count];
             let states_layout = self.payload.row_layout.states_layout.as_ref().unwrap();
             if agg_states.is_empty() {
@@ -293,14 +289,6 @@ impl AggregateHashTable {
                 (&flush_state.group_columns).into(),
                 row_count,
             );
-
-            // set state places
-            if !self.payload.aggrs.is_empty() {
-                for i in 0..row_count {
-                    flush_state.probe_state.state_places[i] =
-                        flush_state.probe_state.addresses[i].state_addr(&self.payload.row_layout);
-                }
-            }
 
             let state = &mut flush_state.probe_state;
             let places = &state.state_places.as_slice()[0..row_count];
