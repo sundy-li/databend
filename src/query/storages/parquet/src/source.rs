@@ -429,9 +429,9 @@ impl ParquetSource {
         let delete_info = delete_files.as_ref().map(|tasks| (meta.as_ref(), *tasks));
 
         for (rowgroup_idx, rg) in meta.row_groups().iter().enumerate() {
-            start_row += rg.num_rows() as u64;
             // filter by bucket option
             if !should_read(rowgroup_idx, part.bucket_option) {
+                start_row += rg.num_rows() as u64;
                 continue;
             }
 
@@ -447,6 +447,8 @@ impl ParquetSource {
                 page_locations: None,
                 selectors: None,
             };
+
+            start_row += rg.num_rows() as u64;
 
             let reader = reader
                 .create_read_policy(

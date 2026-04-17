@@ -320,9 +320,9 @@ impl ParquetVariantSource {
         let mut start_row = 0;
         let mut readers = VecDeque::with_capacity(meta.num_row_groups());
         for (rowgroup_idx, rg) in meta.row_groups().iter().enumerate() {
-            start_row += rg.num_rows() as u64;
             // filter by bucket option
             if !should_read(rowgroup_idx, part.bucket_option) {
+                start_row += rg.num_rows() as u64;
                 continue;
             }
             let mut row_group =
@@ -335,6 +335,7 @@ impl ParquetVariantSource {
                 None,
             )?;
             readers.push_back((reader, start_row, typ.clone(), data_schema.clone()));
+            start_row += rg.num_rows() as u64;
         }
         Ok(readers)
     }
