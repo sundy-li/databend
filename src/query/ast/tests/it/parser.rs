@@ -868,6 +868,14 @@ SELECT * from s;"#,
         r#"ALTER NETWORK POLICY mypolicy SET ALLOWED_IP_LIST=('192.168.10.0/24','192.168.255.1') BLOCKED_IP_LIST=('192.168.1.99') COMMENT='test'"#,
         r#"SHOW PASSWORD POLICIES LIKE 'p%'"#,
         // dynamic tables
+        r#"CREATE DYNAMIC TABLE `db``name`.`table``name` (`col``name` BIGINT) AS SELECT id FROM src"#,
+        r#"REFRESH DYNAMIC TABLE db.dt"#,
+        r#"CREATE DYNAMIC TABLE dt AS SELECT a.id FROM a JOIN b ON a.id = b.id"#,
+        r#"CREATE DYNAMIC TABLE dt AS SELECT id FROM a"#,
+        r#"CREATE DYNAMIC TABLE dt TARGET_LAG = 10 MINUTE AS SELECT id FROM a"#,
+        r#"CREATE DYNAMIC TABLE dt TARGET_LAG = DOWNSTREAM AS SELECT id FROM a"#,
+        // INITIALIZE is parsed as a generic table option and rejected by the binder.
+        r#"CREATE DYNAMIC TABLE dt INITIALIZE = ON_CREATE AS SELECT id FROM a"#,
         r#"
             CREATE OR REPLACE DYNAMIC TABLE db.MyDynamic LIKE t
                 TARGET_LAG = 10 SECOND
@@ -1218,6 +1226,8 @@ fn test_statement_error() {
     let file = &mut mint.new_goldenfile("stmt-error.txt").unwrap();
 
     let cases = &[
+        // REFRESH_MODE is no longer accepted by the parser.
+        r#"CREATE DYNAMIC TABLE dt REFRESH_MODE = FULL AS SELECT id FROM a"#,
         r#"create table a.b (c integer not null 1, b float(10))"#,
         r#"SET SECONDARY ROLES"#,
         r#"create table a (c float(10))"#,
