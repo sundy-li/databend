@@ -10,6 +10,15 @@
 # run-with-settings: enable_fixed_rows_sort=0
 # run-with-settings: enable_experimental_new_join=0
 
+statement ok
+DROP DATABASE IF EXISTS tm_keyed_operators
+
+statement ok
+CREATE DATABASE tm_keyed_operators
+
+statement ok
+USE tm_keyed_operators
+
 ## BOOLEAN NOT NULL, shape dense_nn
 statement ok
 CREATE OR REPLACE TABLE tm_boolean_dense_nn(k BOOLEAN NOT NULL)
@@ -76,9 +85,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_boolean_dense_nn)
 ----
 1830
-
-statement ok
-DROP TABLE tm_boolean_dense_nn
 
 ## BOOLEAN NULL, shape dense
 statement ok
@@ -147,9 +153,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_boolean_dense
-
 ## BOOLEAN NULL, shape mixed
 statement ok
 CREATE OR REPLACE TABLE tm_boolean_mixed(k BOOLEAN NULL)
@@ -216,9 +219,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_boolean_mixed)
 ----
 1830
-
-statement ok
-DROP TABLE tm_boolean_mixed
 
 ## BOOLEAN NULL, shape all_null
 statement ok
@@ -287,9 +287,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_boolean_all_null
-
 ## BOOLEAN NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_boolean_empty(k BOOLEAN NULL)
@@ -353,9 +350,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_boolean_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_boolean_empty
 
 ## INT8 NOT NULL, shape dense_nn
 statement ok
@@ -424,9 +418,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_int8_dense_nn
-
 ## INT8 NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_int8_dense(k INT8 NULL)
@@ -493,9 +484,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_int8_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_int8_dense
 
 ## INT8 NULL, shape mixed
 statement ok
@@ -564,9 +552,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_int8_mixed
-
 ## INT8 NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_int8_all_null(k INT8 NULL)
@@ -634,9 +619,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_int8_all_null
-
 ## INT8 NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_int8_empty(k INT8 NULL)
@@ -700,9 +682,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_int8_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_int8_empty
 
 ## INT16 NOT NULL, shape dense_nn
 statement ok
@@ -771,9 +750,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_int16_dense_nn
-
 ## INT16 NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_int16_dense(k INT16 NULL)
@@ -840,9 +816,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_int16_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_int16_dense
 
 ## INT16 NULL, shape mixed
 statement ok
@@ -911,9 +884,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_int16_mixed
-
 ## INT16 NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_int16_all_null(k INT16 NULL)
@@ -981,9 +951,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_int16_all_null
-
 ## INT16 NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_int16_empty(k INT16 NULL)
@@ -1047,9 +1014,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_int16_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_int16_empty
 
 ## INT32 NOT NULL, shape dense_nn
 statement ok
@@ -1118,9 +1082,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_int32_dense_nn
-
 ## INT32 NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_int32_dense(k INT32 NULL)
@@ -1187,9 +1148,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_int32_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_int32_dense
 
 ## INT32 NULL, shape mixed
 statement ok
@@ -1258,9 +1216,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_int32_mixed
-
 ## INT32 NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_int32_all_null(k INT32 NULL)
@@ -1328,9 +1283,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_int32_all_null
-
 ## INT32 NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_int32_empty(k INT32 NULL)
@@ -1394,9 +1346,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_int32_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_int32_empty
 
 ## INT64 NOT NULL, shape dense_nn
 statement ok
@@ -1465,9 +1414,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_int64_dense_nn
-
 ## INT64 NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_int64_dense(k INT64 NULL)
@@ -1534,9 +1480,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_int64_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_int64_dense
 
 ## INT64 NULL, shape mixed
 statement ok
@@ -1605,9 +1548,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_int64_mixed
-
 ## INT64 NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_int64_all_null(k INT64 NULL)
@@ -1675,9 +1615,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_int64_all_null
-
 ## INT64 NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_int64_empty(k INT64 NULL)
@@ -1741,9 +1678,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_int64_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_int64_empty
 
 ## UINT8 NOT NULL, shape dense_nn
 statement ok
@@ -1812,9 +1746,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_uint8_dense_nn
-
 ## UINT8 NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_uint8_dense(k UINT8 NULL)
@@ -1881,9 +1812,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_uint8_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_uint8_dense
 
 ## UINT8 NULL, shape mixed
 statement ok
@@ -1952,9 +1880,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_uint8_mixed
-
 ## UINT8 NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_uint8_all_null(k UINT8 NULL)
@@ -2022,9 +1947,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_uint8_all_null
-
 ## UINT8 NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_uint8_empty(k UINT8 NULL)
@@ -2088,9 +2010,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_uint8_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_uint8_empty
 
 ## UINT16 NOT NULL, shape dense_nn
 statement ok
@@ -2159,9 +2078,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_uint16_dense_nn
-
 ## UINT16 NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_uint16_dense(k UINT16 NULL)
@@ -2228,9 +2144,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_uint16_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_uint16_dense
 
 ## UINT16 NULL, shape mixed
 statement ok
@@ -2299,9 +2212,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_uint16_mixed
-
 ## UINT16 NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_uint16_all_null(k UINT16 NULL)
@@ -2369,9 +2279,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_uint16_all_null
-
 ## UINT16 NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_uint16_empty(k UINT16 NULL)
@@ -2435,9 +2342,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_uint16_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_uint16_empty
 
 ## UINT32 NOT NULL, shape dense_nn
 statement ok
@@ -2506,9 +2410,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_uint32_dense_nn
-
 ## UINT32 NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_uint32_dense(k UINT32 NULL)
@@ -2575,9 +2476,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_uint32_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_uint32_dense
 
 ## UINT32 NULL, shape mixed
 statement ok
@@ -2646,9 +2544,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_uint32_mixed
-
 ## UINT32 NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_uint32_all_null(k UINT32 NULL)
@@ -2716,9 +2611,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_uint32_all_null
-
 ## UINT32 NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_uint32_empty(k UINT32 NULL)
@@ -2782,9 +2674,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_uint32_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_uint32_empty
 
 ## UINT64 NOT NULL, shape dense_nn
 statement ok
@@ -2853,9 +2742,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_uint64_dense_nn
-
 ## UINT64 NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_uint64_dense(k UINT64 NULL)
@@ -2922,9 +2808,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_uint64_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_uint64_dense
 
 ## UINT64 NULL, shape mixed
 statement ok
@@ -2993,9 +2876,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_uint64_mixed
-
 ## UINT64 NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_uint64_all_null(k UINT64 NULL)
@@ -3063,9 +2943,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_uint64_all_null
-
 ## UINT64 NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_uint64_empty(k UINT64 NULL)
@@ -3129,9 +3006,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_uint64_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_uint64_empty
 
 ## FLOAT32 NOT NULL, shape dense_nn
 statement ok
@@ -3200,9 +3074,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_float32_dense_nn
-
 ## FLOAT32 NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_float32_dense(k FLOAT32 NULL)
@@ -3269,9 +3140,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_float32_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_float32_dense
 
 ## FLOAT32 NULL, shape mixed
 statement ok
@@ -3340,9 +3208,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_float32_mixed
-
 ## FLOAT32 NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_float32_all_null(k FLOAT32 NULL)
@@ -3410,9 +3275,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_float32_all_null
-
 ## FLOAT32 NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_float32_empty(k FLOAT32 NULL)
@@ -3476,9 +3338,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_float32_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_float32_empty
 
 ## FLOAT64 NOT NULL, shape dense_nn
 statement ok
@@ -3547,9 +3406,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_float64_dense_nn
-
 ## FLOAT64 NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_float64_dense(k FLOAT64 NULL)
@@ -3616,9 +3472,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_float64_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_float64_dense
 
 ## FLOAT64 NULL, shape mixed
 statement ok
@@ -3687,9 +3540,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_float64_mixed
-
 ## FLOAT64 NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_float64_all_null(k FLOAT64 NULL)
@@ -3757,9 +3607,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_float64_all_null
-
 ## FLOAT64 NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_float64_empty(k FLOAT64 NULL)
@@ -3823,9 +3670,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_float64_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_float64_empty
 
 ## DECIMAL(15, 2) NOT NULL, shape dense_nn
 statement ok
@@ -3894,9 +3738,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_decimal64_dense_nn
-
 ## DECIMAL(15, 2) NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_decimal64_dense(k DECIMAL(15, 2) NULL)
@@ -3963,9 +3804,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_decimal64_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_decimal64_dense
 
 ## DECIMAL(15, 2) NULL, shape mixed
 statement ok
@@ -4034,9 +3872,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_decimal64_mixed
-
 ## DECIMAL(15, 2) NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_decimal64_all_null(k DECIMAL(15, 2) NULL)
@@ -4104,9 +3939,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_decimal64_all_null
-
 ## DECIMAL(15, 2) NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_decimal64_empty(k DECIMAL(15, 2) NULL)
@@ -4170,9 +4002,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_decimal64_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_decimal64_empty
 
 ## DECIMAL(38, 6) NOT NULL, shape dense_nn
 statement ok
@@ -4241,9 +4070,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_decimal128_dense_nn
-
 ## DECIMAL(38, 6) NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_decimal128_dense(k DECIMAL(38, 6) NULL)
@@ -4310,9 +4136,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_decimal128_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_decimal128_dense
 
 ## DECIMAL(38, 6) NULL, shape mixed
 statement ok
@@ -4381,9 +4204,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_decimal128_mixed
-
 ## DECIMAL(38, 6) NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_decimal128_all_null(k DECIMAL(38, 6) NULL)
@@ -4451,9 +4271,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_decimal128_all_null
-
 ## DECIMAL(38, 6) NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_decimal128_empty(k DECIMAL(38, 6) NULL)
@@ -4517,9 +4334,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_decimal128_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_decimal128_empty
 
 ## DECIMAL(76, 10) NOT NULL, shape dense_nn
 statement ok
@@ -4588,9 +4402,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_decimal256_dense_nn
-
 ## DECIMAL(76, 10) NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_decimal256_dense(k DECIMAL(76, 10) NULL)
@@ -4657,9 +4468,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_decimal256_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_decimal256_dense
 
 ## DECIMAL(76, 10) NULL, shape mixed
 statement ok
@@ -4728,9 +4536,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_decimal256_mixed
-
 ## DECIMAL(76, 10) NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_decimal256_all_null(k DECIMAL(76, 10) NULL)
@@ -4798,9 +4603,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_decimal256_all_null
-
 ## DECIMAL(76, 10) NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_decimal256_empty(k DECIMAL(76, 10) NULL)
@@ -4864,9 +4666,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_decimal256_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_decimal256_empty
 
 ## STRING NOT NULL, shape dense_nn
 statement ok
@@ -4935,9 +4734,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_string_dense_nn
-
 ## STRING NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_string_dense(k STRING NULL)
@@ -5004,9 +4800,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_string_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_string_dense
 
 ## STRING NULL, shape mixed
 statement ok
@@ -5075,9 +4868,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_string_mixed
-
 ## STRING NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_string_all_null(k STRING NULL)
@@ -5145,9 +4935,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_string_all_null
-
 ## STRING NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_string_empty(k STRING NULL)
@@ -5212,9 +4999,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 NULL
 
-statement ok
-DROP TABLE tm_string_empty
-
 ## BINARY NOT NULL, shape dense_nn
 statement ok
 CREATE OR REPLACE TABLE tm_binary_dense_nn(k BINARY NOT NULL)
@@ -5266,9 +5050,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_binary_dense_nn)
 ----
 1830
-
-statement ok
-DROP TABLE tm_binary_dense_nn
 
 ## BINARY NULL, shape dense
 statement ok
@@ -5322,9 +5103,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_binary_dense
-
 ## BINARY NULL, shape mixed
 statement ok
 CREATE OR REPLACE TABLE tm_binary_mixed(k BINARY NULL)
@@ -5376,9 +5154,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_binary_mixed)
 ----
 1830
-
-statement ok
-DROP TABLE tm_binary_mixed
 
 ## BINARY NULL, shape all_null
 statement ok
@@ -5432,9 +5207,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_binary_all_null
-
 ## BINARY NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_binary_empty(k BINARY NULL)
@@ -5483,9 +5255,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_binary_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_binary_empty
 
 ## DATE NOT NULL, shape dense_nn
 statement ok
@@ -5554,9 +5323,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_date_dense_nn
-
 ## DATE NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_date_dense(k DATE NULL)
@@ -5623,9 +5389,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_date_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_date_dense
 
 ## DATE NULL, shape mixed
 statement ok
@@ -5694,9 +5457,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_date_mixed
-
 ## DATE NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_date_all_null(k DATE NULL)
@@ -5764,9 +5524,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_date_all_null
-
 ## DATE NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_date_empty(k DATE NULL)
@@ -5830,9 +5587,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_date_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_date_empty
 
 ## TIMESTAMP NOT NULL, shape dense_nn
 statement ok
@@ -5901,9 +5655,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_timestamp_dense_nn
-
 ## TIMESTAMP NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_timestamp_dense(k TIMESTAMP NULL)
@@ -5970,9 +5721,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_timestamp_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_timestamp_dense
 
 ## TIMESTAMP NULL, shape mixed
 statement ok
@@ -6041,9 +5789,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_timestamp_mixed
-
 ## TIMESTAMP NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_timestamp_all_null(k TIMESTAMP NULL)
@@ -6111,9 +5856,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_timestamp_all_null
-
 ## TIMESTAMP NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_timestamp_empty(k TIMESTAMP NULL)
@@ -6177,9 +5919,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_timestamp_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_timestamp_empty
 
 ## INTERVAL NOT NULL, shape dense_nn
 statement ok
@@ -6248,9 +5987,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_interval_dense_nn
-
 ## INTERVAL NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_interval_dense(k INTERVAL NULL)
@@ -6317,9 +6053,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_interval_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_interval_dense
 
 ## INTERVAL NULL, shape mixed
 statement ok
@@ -6388,9 +6121,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_interval_mixed
-
 ## INTERVAL NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_interval_all_null(k INTERVAL NULL)
@@ -6458,9 +6188,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_interval_all_null
-
 ## INTERVAL NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_interval_empty(k INTERVAL NULL)
@@ -6524,9 +6251,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_interval_empty)
 ----
 NULL
-
-statement ok
-DROP TABLE tm_interval_empty
 
 ## VARIANT NOT NULL, shape dense_nn
 statement ok
@@ -6595,9 +6319,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_variant_dense_nn
-
 ## VARIANT NULL, shape dense
 statement ok
 CREATE OR REPLACE TABLE tm_variant_dense(k VARIANT NULL)
@@ -6664,9 +6385,6 @@ query I
 SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s FROM tm_variant_dense)
 ----
 1830
-
-statement ok
-DROP TABLE tm_variant_dense
 
 ## VARIANT NULL, shape mixed
 statement ok
@@ -6735,9 +6453,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_variant_mixed
-
 ## VARIANT NULL, shape all_null
 statement ok
 CREATE OR REPLACE TABLE tm_variant_all_null(k VARIANT NULL)
@@ -6805,9 +6520,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 1830
 
-statement ok
-DROP TABLE tm_variant_all_null
-
 ## VARIANT NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_variant_empty(k VARIANT NULL)
@@ -6872,9 +6584,6 @@ SELECT sum(s) FROM (SELECT sum(1) OVER (ORDER BY k ROWS UNBOUNDED PRECEDING) s F
 ----
 NULL
 
-statement ok
-DROP TABLE tm_variant_empty
-
 ## ARRAY(INT32) NOT NULL, shape dense_nn
 statement ok
 CREATE OR REPLACE TABLE tm_array_int32_dense_nn(k ARRAY(INT32) NOT NULL)
@@ -6921,9 +6630,6 @@ query I
 SELECT count(*) FROM tm_array_int32_dense_nn WHERE k IN (SELECT [number::INT32] FROM numbers(2))
 ----
 20
-
-statement ok
-DROP TABLE tm_array_int32_dense_nn
 
 ## ARRAY(INT32) NULL, shape dense
 statement ok
@@ -6972,9 +6678,6 @@ SELECT count(*) FROM tm_array_int32_dense WHERE k IN (SELECT [number::INT32] FRO
 ----
 20
 
-statement ok
-DROP TABLE tm_array_int32_dense
-
 ## ARRAY(INT32) NULL, shape mixed
 statement ok
 CREATE OR REPLACE TABLE tm_array_int32_mixed(k ARRAY(INT32) NULL)
@@ -7021,9 +6724,6 @@ query I
 SELECT count(*) FROM tm_array_int32_mixed WHERE k IN (SELECT [number::INT32] FROM numbers(2))
 ----
 16
-
-statement ok
-DROP TABLE tm_array_int32_mixed
 
 ## ARRAY(INT32) NULL, shape all_null
 statement ok
@@ -7072,9 +6772,6 @@ SELECT count(*) FROM tm_array_int32_all_null WHERE k IN (SELECT [number::INT32] 
 ----
 0
 
-statement ok
-DROP TABLE tm_array_int32_all_null
-
 ## ARRAY(INT32) NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_array_int32_empty(k ARRAY(INT32) NULL)
@@ -7119,9 +6816,6 @@ SELECT count(*) FROM tm_array_int32_empty WHERE k IN (SELECT [number::INT32] FRO
 ----
 0
 
-statement ok
-DROP TABLE tm_array_int32_empty
-
 ## TUPLE(INT32, STRING) NOT NULL, shape dense_nn
 statement ok
 CREATE OR REPLACE TABLE tm_tuple_dense_nn(k TUPLE(INT32, STRING) NOT NULL)
@@ -7153,9 +6847,6 @@ query BB
 SELECT min(k) IS NOT NULL, max(k) IS NOT NULL FROM tm_tuple_dense_nn
 ----
 1 1
-
-statement ok
-DROP TABLE tm_tuple_dense_nn
 
 ## TUPLE(INT32, STRING) NULL, shape dense
 statement ok
@@ -7189,9 +6880,6 @@ SELECT min(k) IS NOT NULL, max(k) IS NOT NULL FROM tm_tuple_dense
 ----
 1 1
 
-statement ok
-DROP TABLE tm_tuple_dense
-
 ## TUPLE(INT32, STRING) NULL, shape mixed
 statement ok
 CREATE OR REPLACE TABLE tm_tuple_mixed(k TUPLE(INT32, STRING) NULL)
@@ -7223,9 +6911,6 @@ query BB
 SELECT min(k) IS NOT NULL, max(k) IS NOT NULL FROM tm_tuple_mixed
 ----
 1 1
-
-statement ok
-DROP TABLE tm_tuple_mixed
 
 ## TUPLE(INT32, STRING) NULL, shape all_null
 statement ok
@@ -7259,9 +6944,6 @@ SELECT min(k) IS NOT NULL, max(k) IS NOT NULL FROM tm_tuple_all_null
 ----
 0 0
 
-statement ok
-DROP TABLE tm_tuple_all_null
-
 ## TUPLE(INT32, STRING) NULL, shape empty
 statement ok
 CREATE OR REPLACE TABLE tm_tuple_empty(k TUPLE(INT32, STRING) NULL)
@@ -7292,4 +6974,7 @@ SELECT min(k) IS NOT NULL, max(k) IS NOT NULL FROM tm_tuple_empty
 0 0
 
 statement ok
-DROP TABLE tm_tuple_empty
+USE default
+
+statement ok
+DROP DATABASE tm_keyed_operators

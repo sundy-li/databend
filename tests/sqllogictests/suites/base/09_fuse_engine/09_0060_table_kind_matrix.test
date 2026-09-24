@@ -4,6 +4,15 @@
 # The same sequence of write operations against every kind of fuse table, with the
 # same expected results, so a kind-specific divergence shows up as a diff.
 
+statement ok
+DROP DATABASE IF EXISTS tkm_table_kind
+
+statement ok
+CREATE DATABASE tkm_table_kind
+
+statement ok
+USE tkm_table_kind
+
 ## regular table
 statement ok
 CREATE OR REPLACE TABLE tkm_regular(a INT, b STRING)
@@ -20,7 +29,7 @@ SELECT count(*), sum(a) FROM tkm_regular
 6 21
 
 query I
-SELECT count(*) FROM fuse_block('default', 'tkm_regular')
+SELECT count(*) FROM fuse_block('tkm_table_kind', 'tkm_regular')
 ----
 2
 
@@ -108,7 +117,7 @@ SELECT count(*), sum(a) FROM tkm_regular
 7 30
 
 query I
-SELECT count(*) FROM fuse_block('default', 'tkm_regular')
+SELECT count(*) FROM fuse_block('tkm_table_kind', 'tkm_regular')
 ----
 1
 
@@ -133,7 +142,7 @@ SELECT count(*), sum(a) FROM tkm_regular
 10 60
 
 query B
-SELECT count(*) < 4 FROM fuse_block('default', 'tkm_regular')
+SELECT count(*) < 4 FROM fuse_block('tkm_table_kind', 'tkm_regular')
 ----
 1
 
@@ -215,23 +224,14 @@ statement ok
 INSERT INTO tkm_regular VALUES (2, 'b')
 
 query II
-SELECT row_count, block_count FROM fuse_snapshot('default', 'tkm_regular') LIMIT 1
+SELECT row_count, block_count FROM fuse_snapshot('tkm_table_kind', 'tkm_regular') LIMIT 1
 ----
 2 2
 
 query B
-SELECT count(*) >= 1 FROM fuse_snapshot('default', 'tkm_regular')
+SELECT count(*) >= 1 FROM fuse_snapshot('tkm_table_kind', 'tkm_regular')
 ----
 1
-
-statement ok
-DROP TABLE tkm_regular_ctas
-
-statement ok
-DROP TABLE tkm_regular
-
-statement ok
-DROP TABLE tkm_regular_src
 
 ## transient table
 statement ok
@@ -249,7 +249,7 @@ SELECT count(*), sum(a) FROM tkm_transient
 6 21
 
 query I
-SELECT count(*) FROM fuse_block('default', 'tkm_transient')
+SELECT count(*) FROM fuse_block('tkm_table_kind', 'tkm_transient')
 ----
 2
 
@@ -337,7 +337,7 @@ SELECT count(*), sum(a) FROM tkm_transient
 7 30
 
 query I
-SELECT count(*) FROM fuse_block('default', 'tkm_transient')
+SELECT count(*) FROM fuse_block('tkm_table_kind', 'tkm_transient')
 ----
 1
 
@@ -362,7 +362,7 @@ SELECT count(*), sum(a) FROM tkm_transient
 10 60
 
 query B
-SELECT count(*) < 4 FROM fuse_block('default', 'tkm_transient')
+SELECT count(*) < 4 FROM fuse_block('tkm_table_kind', 'tkm_transient')
 ----
 1
 
@@ -444,23 +444,14 @@ statement ok
 INSERT INTO tkm_transient VALUES (2, 'b')
 
 query II
-SELECT row_count, block_count FROM fuse_snapshot('default', 'tkm_transient') LIMIT 1
+SELECT row_count, block_count FROM fuse_snapshot('tkm_table_kind', 'tkm_transient') LIMIT 1
 ----
 2 2
 
 query B
-SELECT count(*) >= 1 FROM fuse_snapshot('default', 'tkm_transient')
+SELECT count(*) >= 1 FROM fuse_snapshot('tkm_table_kind', 'tkm_transient')
 ----
 1
-
-statement ok
-DROP TABLE tkm_transient_ctas
-
-statement ok
-DROP TABLE tkm_transient
-
-statement ok
-DROP TABLE tkm_transient_src
 
 ## temp table
 statement ok
@@ -478,7 +469,7 @@ SELECT count(*), sum(a) FROM tkm_temp
 6 21
 
 query I
-SELECT count(*) FROM fuse_block('default', 'tkm_temp')
+SELECT count(*) FROM fuse_block('tkm_table_kind', 'tkm_temp')
 ----
 2
 
@@ -566,7 +557,7 @@ SELECT count(*), sum(a) FROM tkm_temp
 7 30
 
 query I
-SELECT count(*) FROM fuse_block('default', 'tkm_temp')
+SELECT count(*) FROM fuse_block('tkm_table_kind', 'tkm_temp')
 ----
 1
 
@@ -591,7 +582,7 @@ SELECT count(*), sum(a) FROM tkm_temp
 10 60
 
 query B
-SELECT count(*) < 4 FROM fuse_block('default', 'tkm_temp')
+SELECT count(*) < 4 FROM fuse_block('tkm_table_kind', 'tkm_temp')
 ----
 1
 
@@ -673,12 +664,12 @@ statement ok
 INSERT INTO tkm_temp VALUES (2, 'b')
 
 query II
-SELECT row_count, block_count FROM fuse_snapshot('default', 'tkm_temp') LIMIT 1
+SELECT row_count, block_count FROM fuse_snapshot('tkm_table_kind', 'tkm_temp') LIMIT 1
 ----
 2 2
 
 query B
-SELECT count(*) >= 1 FROM fuse_snapshot('default', 'tkm_temp')
+SELECT count(*) >= 1 FROM fuse_snapshot('tkm_table_kind', 'tkm_temp')
 ----
 1
 
@@ -689,4 +680,12 @@ statement ok
 DROP TABLE tkm_temp
 
 statement ok
-DROP TABLE tkm_temp_src
+USE default
+
+statement ok
+DROP DATABASE tkm_table_kind
+
+query I
+SELECT count(*) FROM system.temporary_tables WHERE database = 'tkm_table_kind' AND is_current_session
+----
+0

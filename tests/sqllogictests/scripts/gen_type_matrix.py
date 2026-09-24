@@ -47,6 +47,7 @@ OUTPUT = (
     / "type_matrix"
     / "keyed_operators.test"
 )
+DATABASE = "tm_keyed_operators"
 
 # Rows per table and distinct non-null keys. NULLS_EVERY controls the mixed
 # shape: row `i` is NULL when `i % NULLS_EVERY == NULLS_EVERY - 1`.
@@ -208,10 +209,6 @@ def gen_case(out: list[str], ty: KeyType, shape: Shape):
     if not ty.no_sort:
         gen_window_cases(out, table, model)
 
-    out.append("statement ok")
-    out.append(f"DROP TABLE {table}")
-    out.append("")
-
 
 def gen_sort_cases(out: list[str], table: str, model: Model):
     """Full sort and top-n, NULL keys in both directions."""
@@ -340,9 +337,18 @@ def main():
     out.append("# run-with-settings: enable_fixed_rows_sort=0")
     out.append("# run-with-settings: enable_experimental_new_join=0")
     out.append("")
+    out.extend((
+        "statement ok", f"DROP DATABASE IF EXISTS {DATABASE}", "",
+        "statement ok", f"CREATE DATABASE {DATABASE}", "",
+        "statement ok", f"USE {DATABASE}", "",
+    ))
     for ty in TYPES:
         for shape in SHAPES:
             gen_case(out, ty, shape)
+    out.extend((
+        "statement ok", "USE default", "",
+        "statement ok", f"DROP DATABASE {DATABASE}", "",
+    ))
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text("\n".join(out).rstrip() + "\n")
     print(f"wrote {OUTPUT.relative_to(Path(os.getcwd()))}")

@@ -48,6 +48,7 @@ OUTPUT = (
     / "09_fuse_engine"
     / "09_0060_table_kind_matrix.test"
 )
+DATABASE = "tkm_table_kind"
 
 
 @dataclass(frozen=True)
@@ -92,7 +93,7 @@ def gen_kind(out: list[str], kind: Kind):
     ok(f"INSERT INTO {t} VALUES (1, 'a'), (2, 'b'), (3, 'c')")
     ok(f"INSERT INTO {t} VALUES (4, 'd'), (5, 'e'), (6, 'f')")
     query("II", f"SELECT count(*), sum(a) FROM {t}", "6 21")
-    query("I", f"SELECT count(*) FROM fuse_block('default', '{t}')", "2")
+    query("I", f"SELECT count(*) FROM fuse_block('{DATABASE}', '{t}')", "2")
 
     # Row-level mutations.
     ok(f"UPDATE {t} SET b = 'x' WHERE a = 2")
@@ -128,7 +129,7 @@ def gen_kind(out: list[str], kind: Kind):
     # Explicit compaction keeps the data and merges the blocks.
     ok(f"OPTIMIZE TABLE {t} COMPACT")
     query("II", f"SELECT count(*), sum(a) FROM {t}", "7 30")
-    query("I", f"SELECT count(*) FROM fuse_block('default', '{t}')", "1")
+    query("I", f"SELECT count(*) FROM fuse_block('{DATABASE}', '{t}')", "1")
 
     # Auto compaction after write: three single-row inserts over the threshold
     # must leave fewer blocks than were appended.
@@ -138,7 +139,7 @@ def gen_kind(out: list[str], kind: Kind):
     ok(f"INSERT INTO {t} VALUES (11, 'k')")
     ok("UNSET auto_compaction_imperfect_blocks_threshold")
     query("II", f"SELECT count(*), sum(a) FROM {t}", "10 60")
-    query("B", f"SELECT count(*) < 4 FROM fuse_block('default', '{t}')", "1")
+    query("B", f"SELECT count(*) < 4 FROM fuse_block('{DATABASE}', '{t}')", "1")
 
     # Explicit transaction with several statements on the table, then rollback.
     ok("BEGIN")
@@ -172,14 +173,15 @@ def gen_kind(out: list[str], kind: Kind):
     ok(f"INSERT INTO {t} VALUES (2, 'b')")
     query(
         "II",
-        f"SELECT row_count, block_count FROM fuse_snapshot('default', '{t}') LIMIT 1",
+        f"SELECT row_count, block_count FROM fuse_snapshot('{DATABASE}', '{t}') LIMIT 1",
         "2 2",
     )
-    query("B", f"SELECT count(*) >= 1 FROM fuse_snapshot('default', '{t}')", "1")
+    query("B", f"SELECT count(*) >= 1 FROM fuse_snapshot('{DATABASE}', '{t}')", "1")
 
-    ok(f"DROP TABLE {t}_ctas")
-    ok(f"DROP TABLE {t}")
-    ok(f"DROP TABLE {src}")
+    # TEMP tables live in the session catalog: DROP DATABASE does not remove them.
+    if kind.create == "TEMP":
+        ok(f"DROP TABLE {t}_ctas")
+        ok(f"DROP TABLE {t}")
 
 
 def main():
@@ -194,8 +196,20 @@ def main():
     )
     out.append("# same expected results, so a kind-specific divergence shows up as a diff.")
     out.append("")
+    out.extend((
+        "statement ok", f"DROP DATABASE IF EXISTS {DATABASE}", "",
+        "statement ok", f"CREATE DATABASE {DATABASE}", "",
+        "statement ok", f"USE {DATABASE}", "",
+    ))
     for kind in KINDS:
         gen_kind(out, kind)
+    out.extend((
+        "statement ok", "USE default", "",
+        "statement ok", f"DROP DATABASE {DATABASE}", "",
+        "query I",
+        f"SELECT count(*) FROM system.temporary_tables WHERE database = '{DATABASE}' AND is_current_session",
+        "----", "0", "",
+    ))
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text("\n".join(out).rstrip() + "\n")
     print(f"wrote {OUTPUT.relative_to(Path(os.getcwd()))}")
